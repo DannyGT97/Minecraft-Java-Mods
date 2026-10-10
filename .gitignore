@@ -1,0 +1,25 @@
+# Gradle build output and local dependency/cache state (also applies to each mod folder).
+.gradle/
+build/
+out/
+
+# IDE metadata and editor-local settings.
+.idea/
+*.iml
+.vscode/
+
+# Local Minecraft development runs and generated game data.
+run/
+run-*/
+logs/
+crash-reports/
+saves/
+
+# Operating-system and JVM-generated files.
+.DS_Store
+Thumbs.db
+desktop.ini
+hs_err_pid*.log
+replay_pid*.log
+*.class
+*.log

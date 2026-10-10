@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "treechopper",
+  "version": "${version}",
+  "name": "Tree Chopper",
+  "description": "Fells the connected upper part of a tree when breaking a log while sneaking with an axe.",
+  "authors": ["dstsoftware"],
+  "license": "CC0-1.0",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.dstsoftware.treechopper.TreeChopper"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}

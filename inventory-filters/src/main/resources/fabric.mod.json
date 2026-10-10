@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "inventoryfilters",
+  "version": "${version}",
+  "name": "Inventory Filters",
+  "description": "Sorts inventory and container contents using GUI buttons.",
+  "authors": ["dstsoftware"],
+  "license": "CC0-1.0",
+  "environment": "*",
+  "entrypoints": { "main": ["com.dstsoftware.inventoryfilters.InventoryFilters"] },
+  "mixins": [
+    "inventoryfilters.mixins.json",
+    { "config": "inventoryfilters.client.mixins.json", "environment": "client" }
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
+
