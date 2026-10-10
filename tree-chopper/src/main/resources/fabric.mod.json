@@ -4,7 +4,8 @@
   "version": "${version}",
   "name": "Tree Chopper",
   "description": "Fells the connected upper part of a tree when breaking a log while sneaking with an axe.",
-  "authors": ["dstsoftware"],
+  "authors": ["DannyGT97"],
+  "icon": "assets/treechopper/icon.png",
   "license": "CC0-1.0",
   "environment": "*",
   "entrypoints": {
