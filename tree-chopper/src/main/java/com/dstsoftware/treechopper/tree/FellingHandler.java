@@ -415,6 +415,7 @@ public class FellingHandler {
 			case "dark_oak" -> Blocks.DARK_OAK_SAPLING;
 			case "pale_oak" -> Blocks.PALE_OAK_SAPLING;
 			case "cherry" -> Blocks.CHERRY_SAPLING;
+			case "poplar" -> Blocks.POPLAR_SAPLING;
 			case "mangrove" -> Blocks.MANGROVE_PROPAGULE;
 			case "crimson" -> Blocks.CRIMSON_FUNGUS;
 			case "warped" -> Blocks.WARPED_FUNGUS;
