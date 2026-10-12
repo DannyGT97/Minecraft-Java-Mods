@@ -5,7 +5,6 @@
   "name": "Inventory Filters",
   "description": "Sorts inventory and container contents using GUI buttons.",
   "authors": ["DannyGT97"],
-  "icon": "assets/inventoryfilters/icon.png",
   "license": "CC0-1.0",
   "environment": "*",
   "entrypoints": {
