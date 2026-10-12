@@ -75,6 +75,16 @@ public final class TreeChopperConfig {
 		set(AUTO_SAPLING_KEY, enabled);
 	}
 
+	/** Restores every setting to its fresh-install default. */
+	public static synchronized void resetToDefaults() {
+		ensureLoaded();
+		VALUES.setProperty(ENABLED_KEY, "true");
+		VALUES.setProperty(ALLOW_WITHOUT_SNEAKING_KEY, "true");
+		VALUES.setProperty(NETHER_FELLING_KEY, "true");
+		VALUES.setProperty(AUTO_SAPLING_KEY, "false");
+		save();
+	}
+
 	private static boolean get(String key) {
 		ensureLoaded();
 		return Boolean.parseBoolean(VALUES.getProperty(key));

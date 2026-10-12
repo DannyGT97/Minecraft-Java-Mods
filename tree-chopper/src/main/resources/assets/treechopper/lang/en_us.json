@@ -3,5 +3,11 @@
   "treechopper.config.enabled": "Tree felling: %s",
   "treechopper.config.no_sneaking": "Allow without sneaking: %s",
   "treechopper.config.nether": "Nether Warped and Crimson Fungi Felling: %s",
-  "treechopper.config.auto_sapling": "Automatic sapling placement: %s"
+  "treechopper.config.auto_sapling": "Automatic sapling placement: %s",
+  "treechopper.config.category.general": "General",
+  "treechopper.config.category.general.desc": "Main switch and when felling happens.",
+  "treechopper.config.category.nether": "Nether",
+  "treechopper.config.category.nether.desc": "Crimson and warped fungi trees.",
+  "treechopper.config.category.saplings": "Saplings",
+  "treechopper.config.category.saplings.desc": "Replanting after a tree is felled."
 }

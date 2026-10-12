@@ -3,5 +3,11 @@
   "treechopper.config.enabled": "Tala de árboles: %s",
   "treechopper.config.no_sneaking": "Permitir sin agacharse: %s",
   "treechopper.config.nether": "Tala de hongos del Nether (Warped y Crimson): %s",
-  "treechopper.config.auto_sapling": "Colocación automática de saplings: %s"
+  "treechopper.config.auto_sapling": "Colocación automática de saplings: %s",
+  "treechopper.config.category.general": "General",
+  "treechopper.config.category.general.desc": "Interruptor general y cuándo se tala.",
+  "treechopper.config.category.nether": "Nether",
+  "treechopper.config.category.nether.desc": "Árboles de hongos carmesí y distorsionado.",
+  "treechopper.config.category.saplings": "Saplings",
+  "treechopper.config.category.saplings.desc": "Replantado tras talar un árbol."
 }

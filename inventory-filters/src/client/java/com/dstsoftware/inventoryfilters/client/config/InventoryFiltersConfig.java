@@ -91,6 +91,16 @@ public final class InventoryFiltersConfig {
 		set(INCLUDE_HOTBAR_KEY, Boolean.toString(include));
 	}
 
+	/** Restores every setting to its fresh-install default. */
+	public static synchronized void resetToDefaults() {
+		ensureLoaded();
+		VALUES.setProperty(ENABLED_KEY, "true");
+		VALUES.setProperty(SORT_MODE_KEY, MODE_NAMES[InventorySorter.MODE_TYPE]);
+		VALUES.setProperty(REVERSE_KEY, "false");
+		VALUES.setProperty(INCLUDE_HOTBAR_KEY, "false");
+		save();
+	}
+
 	private static void set(String key, String value) {
 		ensureLoaded();
 		VALUES.setProperty(key, value);

@@ -14,5 +14,11 @@
   "inventoryfilters.config.enabled": "Inventory Filters: %s",
   "inventoryfilters.config.sort_mode": "Sort mode: %s",
   "inventoryfilters.config.reverse": "Reverse order: %s",
-  "inventoryfilters.config.hotbar": "Include hotbar: %s"
+  "inventoryfilters.config.hotbar": "Include hotbar: %s",
+  "inventoryfilters.config.category.general": "General",
+  "inventoryfilters.config.category.general.desc": "Main switch of the mod.",
+  "inventoryfilters.config.category.sorting": "Sorting",
+  "inventoryfilters.config.category.sorting.desc": "How the sort button orders items.",
+  "inventoryfilters.config.category.hotbar": "Hotbar",
+  "inventoryfilters.config.category.hotbar.desc": "Whether the hotbar takes part in sorting, moving and stacking."
 }
