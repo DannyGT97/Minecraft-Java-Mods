@@ -4,11 +4,14 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 
 import net.minecraft.core.BlockPos;
@@ -44,9 +47,15 @@ public class FellingHandler {
 	private static final int MAX_NETHER_CANOPY = 1024;
 	private static final float[] NETHER_FUNGUS_DROP_CHANCES = {0.05F, 0.0625F, 0.083333336F, 0.1F};
 	private static final RandomSource RANDOM = RandomSource.create();
+	// Saplings wait this long (2 seconds) before being planted so a still-swinging axe can't hit them.
+	private static final int SAPLING_DELAY_TICKS = 40;
+	private static final List<PendingSapling> PENDING_SAPLINGS = new ArrayList<>();
+	private static long tickCounter;
 
 	public static void init() {
 		PlayerBlockBreakEvents.AFTER.register(FellingHandler::onBlockBroken);
+		ServerTickEvents.END_SERVER_TICK.register(server -> tickSaplings());
+		ServerLifecycleEvents.SERVER_STOPPED.register(server -> PENDING_SAPLINGS.clear());
 	}
 
 	private static void onBlockBroken(
@@ -357,16 +366,44 @@ public class FellingHandler {
 		}
 
 		BlockState saplingState = sapling.defaultBlockState();
+		if (!canPlant(level, targets, saplingState)) {
+			return;
+		}
+		// Not planted right away: the swing that just felled the tree is usually still going, and
+		// a sapling pops instantly, so the very next hit would knock it out again. It is planted a
+		// moment later instead, once the chopping is over.
+		PENDING_SAPLINGS.add(new PendingSapling(level, targets, saplingState, tickCounter + SAPLING_DELAY_TICKS));
+	}
+
+	private static boolean canPlant(final ServerLevel level, final List<BlockPos> targets, final BlockState saplingState) {
 		for (BlockPos target : targets) {
 			BlockState current = level.getBlockState(target);
-			if (!(current.isAir() || current.canBeReplaced()) || !saplingState.canSurvive(level, target)) {
-				return;
+			if (!level.isLoaded(target) || !(current.isAir() || current.canBeReplaced()) || !saplingState.canSurvive(level, target)) {
+				return false;
 			}
 		}
-		for (BlockPos target : targets) {
-			level.setBlock(target, saplingState, Block.UPDATE_ALL);
+		return true;
+	}
+
+	// Plants the saplings that have waited out their delay. The spot is checked again first: the
+	// player may have built or planted something there in the meantime, which then wins.
+	private static void tickSaplings() {
+		tickCounter++;
+		for (Iterator<PendingSapling> iterator = PENDING_SAPLINGS.iterator(); iterator.hasNext();) {
+			PendingSapling pending = iterator.next();
+			if (tickCounter < pending.dueTick()) {
+				continue;
+			}
+			iterator.remove();
+			if (canPlant(pending.level(), pending.targets(), pending.state())) {
+				for (BlockPos target : pending.targets()) {
+					pending.level().setBlock(target, pending.state(), Block.UPDATE_ALL);
+				}
+			}
 		}
 	}
+
+	private record PendingSapling(ServerLevel level, List<BlockPos> targets, BlockState state, long dueTick) {}
 
 	private static Block saplingFor(final String family) {
 		return switch (family) {
