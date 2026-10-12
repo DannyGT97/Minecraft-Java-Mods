@@ -1,7 +1,0 @@
-{
-  "required": true,
-  "package": "com.dstsoftware.dynamiclights.client.mixin",
-  "compatibilityLevel": "JAVA_25",
-  "client": ["LightCoordsUtilMixin", "EntityRendererMixin"],
-  "injectors": { "defaultRequire": 1 }
-}

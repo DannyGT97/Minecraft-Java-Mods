@@ -26,3 +26,6 @@ replay_pid*.log
 
 # Personal notes
 TO DO.txt
+
+# Mods kept local until they are tested enough to publish.
+dynamic-lights/
