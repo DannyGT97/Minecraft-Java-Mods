@@ -1,0 +1,7 @@
+{
+  "treechopper.config.title": "Ajustes de Tree Chopper",
+  "treechopper.config.enabled": "Tala de árboles: %s",
+  "treechopper.config.no_sneaking": "Permitir sin agacharse: %s",
+  "treechopper.config.nether": "Tala de hongos del Nether (Warped y Crimson): %s",
+  "treechopper.config.auto_sapling": "Colocación automática de saplings: %s"
+}

@@ -1,0 +1,7 @@
+{
+  "treechopper.config.title": "Tree Chopper Settings",
+  "treechopper.config.enabled": "Tree felling: %s",
+  "treechopper.config.no_sneaking": "Allow without sneaking: %s",
+  "treechopper.config.nether": "Nether Warped and Crimson Fungi Felling: %s",
+  "treechopper.config.auto_sapling": "Automatic sapling placement: %s"
+}

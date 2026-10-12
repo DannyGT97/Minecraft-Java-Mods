@@ -8,7 +8,9 @@ import net.minecraft.world.item.ItemStack;
 
 // Backs the Transfer-all and Auto-stack buttons: bulk-moves items between the player's own main
 // storage (hotbar excluded, same as InventorySorter) and whatever external container is open.
-// Both operations walk the source front-to-back and greedily fill the destination - the same
+// Transfer-all moves everything; auto-stack only moves the items the destination already holds
+// (quick-stack), topping up its partial stacks first and then using free slots. Both walk the
+// source front-to-back and greedily fill the destination - the same
 // mechanics as repeatedly shift-clicking every source slot.
 public class InventoryTransferer {
 	public static void transferAll(final ServerPlayer player, final boolean toContainer) {
@@ -36,12 +38,14 @@ public class InventoryTransferer {
 		menu.broadcastChanges();
 	}
 
-	// stackOnly restricts the move to topping up stacks that already exist in the destination,
-	// never touching an empty destination slot - the difference between "auto-stack" and a full
-	// "transfer all". destIsContainer gates the "place into an empty slot" step through the menu's
-	// real Slot.mayPlace (see mayPlace below) - without this, this bulk path wrote straight to the
-	// raw Container and completely bypassed container slot placement restrictions
-	// checks, letting a single player dump past both limits in one click via the "place all" button.
+	// stackOnly restricts the move to items the destination already holds (any stack of the same
+	// item, whatever its count) - the difference between "auto-stack" and a full "transfer all".
+	// Those items first top up the matching partial stacks, then spill into free slots, so a
+	// container whose existing stacks are already full still takes the rest of that item.
+	// destIsContainer gates the "place into an empty slot" step through the menu's real
+	// Slot.mayPlace (see mayPlace below) - without this, this bulk path wrote straight to the raw
+	// Container and completely bypassed container slot placement restrictions, letting a single
+	// player dump past them in one click via the "place all" button.
 	private static void move(
 		final Container source,
 		final int srcFrom,
@@ -55,7 +59,7 @@ public class InventoryTransferer {
 	) {
 		for (int i = srcFrom; i < srcTo; i++) {
 			ItemStack stack = source.getItem(i);
-			if (stack.isEmpty()) {
+			if (stack.isEmpty() || (stackOnly && !holdsItem(dest, destFrom, destTo, stack))) {
 				continue;
 			}
 
@@ -68,20 +72,27 @@ public class InventoryTransferer {
 				}
 			}
 
-			if (!stackOnly) {
-				for (int j = destFrom; j < destTo && !stack.isEmpty(); j++) {
-					if (dest.getItem(j).isEmpty() && mayPlace(menu, destIsContainer, j, stack)) {
-						int move = Math.min(stack.getMaxStackSize(), stack.getCount());
-						ItemStack placed = stack.copy();
-						placed.setCount(move);
-						dest.setItem(j, placed);
-						stack.shrink(move);
-					}
+			for (int j = destFrom; j < destTo && !stack.isEmpty(); j++) {
+				if (dest.getItem(j).isEmpty() && mayPlace(menu, destIsContainer, j, stack)) {
+					int move = Math.min(stack.getMaxStackSize(), stack.getCount());
+					ItemStack placed = stack.copy();
+					placed.setCount(move);
+					dest.setItem(j, placed);
+					stack.shrink(move);
 				}
 			}
 
 			source.setItem(i, stack.isEmpty() ? ItemStack.EMPTY : stack);
 		}
+	}
+
+	private static boolean holdsItem(final Container container, final int from, final int to, final ItemStack stack) {
+		for (int j = from; j < to; j++) {
+			if (ItemStack.isSameItem(container.getItem(j), stack)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	// Only the container side of a transfer needs gating - the player's own inventory has no

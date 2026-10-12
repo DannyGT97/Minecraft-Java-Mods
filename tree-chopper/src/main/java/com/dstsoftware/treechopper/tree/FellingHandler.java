@@ -52,11 +52,30 @@ public class FellingHandler {
 	private static void onBlockBroken(
 		final Level level, final Player player, final BlockPos pos, final BlockState state, final BlockEntity blockEntity
 	) {
-		if (!(level instanceof ServerLevel serverLevel) || !state.is(BlockTags.LOGS) || !player.isShiftKeyDown() || !player.getMainHandItem().is(ItemTags.AXES)) {
+		if (!(level instanceof ServerLevel serverLevel)) {
 			return;
 		}
 
+		// Housekeeping that must run whatever the settings are: a block that is gone is no longer
+		// "placed by a player", so a tree that later grows on the same spot is natural again. A log
+		// the player placed is never the start of a felling - it is part of a build, not a tree.
+		boolean playerPlaced = PlayerPlacedBlocks.shouldTrack(state) && PlayerPlacedBlocks.isPlaced(serverLevel, pos);
+		if (playerPlaced) {
+			PlayerPlacedBlocks.unmark(serverLevel, pos);
+		}
+
 		ItemStack held = player.getMainHandItem();
+		if (playerPlaced || !TreeChopperConfig.isEnabled() || !state.is(BlockTags.LOGS)
+			|| (!TreeChopperConfig.isAllowWithoutSneaking() && !player.isShiftKeyDown())
+			|| !held.is(ItemTags.AXES)) {
+			return;
+		}
+
+		Block logBlock = state.getBlock();
+		boolean nether = isNetherWood(logBlock);
+		if (nether && !TreeChopperConfig.isNetherFellingEnabled()) {
+			return;
+		}
 
 		// A thick multi-log trunk (dark oak/pale oak's 2x2 base, a mega spruce/jungle trunk grown
 		// from 4 saplings) still has another log of the same type standing right beside this one
@@ -64,11 +83,13 @@ public class FellingHandler {
 		// that case, so a thick trunk is only felled once that layer is cleared. Only the log that
 		// finally clears that whole layer (no matching neighbor left at this height) triggers the
 		// fell. A normal single-wide trunk never has a same-height neighbor at all, so this never
-		// holds back felling for the common case.
-		Block logBlock = state.getBlock();
+		// holds back felling for the common case. Logs the player placed next to the trunk don't
+		// count - they are not part of the tree.
 		for (Direction dir : Direction.Plane.HORIZONTAL) {
-			BlockState neighbor = serverLevel.getBlockState(pos.relative(dir));
-			if (neighbor.is(BlockTags.LOGS) && sameWoodFamily(logBlock, neighbor.getBlock())) {
+			BlockPos neighborPos = pos.relative(dir);
+			BlockState neighbor = serverLevel.getBlockState(neighborPos);
+			if (neighbor.is(BlockTags.LOGS) && sameWoodFamily(logBlock, neighbor.getBlock())
+				&& !PlayerPlacedBlocks.isPlaced(serverLevel, neighborPos)) {
 				return;
 			}
 		}
@@ -84,22 +105,41 @@ public class FellingHandler {
 		// destroying the whole tree regardless of cut height: chopping partway up a thick
 		// multi-log trunk (dark oak/pale oak's 2x2 base) should only take down what's above the
 		// cut, leaving the stump below standing, exactly like chopping a real tree.
+		// Logs the player placed are skipped outright, so a log house or tree house touching the
+		// trunk is never pulled into the fell (nor is anything only reachable through it).
 		Set<BlockPos> logs = new HashSet<>();
 		floodFill(
-			serverLevel, logs, neighborsOf(pos, true), p -> p.getY() >= pos.getY() && serverLevel.getBlockState(p).is(BlockTags.LOGS) && sameWoodFamily(logBlock, serverLevel.getBlockState(p).getBlock()), true,
-			MAX_LOGS
+			serverLevel, logs, neighborsOf(pos, true),
+			p -> p.getY() >= pos.getY() && serverLevel.getBlockState(p).is(BlockTags.LOGS)
+				&& sameWoodFamily(logBlock, serverLevel.getBlockState(p).getBlock()) && !PlayerPlacedBlocks.isPlaced(serverLevel, p),
+			true, MAX_LOGS
 		);
 
-		Set<BlockPos> leaves = isNetherStem(logBlock) ? Set.of() : collectLeaves(serverLevel, logs, pos);
-		if (isNetherStem(logBlock)) {
-			fellNetherCanopy(serverLevel, held, pos, logs);
+		// Only a real tree gets felled: it must carry a natural canopy (leaves that vanilla itself
+		// would decay, i.e. not the persistent ones a player places; wart blocks/shroomlight for
+		// the nether). Log cabins from worlds that predate this mod, village houses and bare
+		// pillars have none, so they are left alone even when nothing is recorded for them.
+		Set<BlockPos> canopy = nether ? collectNetherCanopy(serverLevel, pos, logs) : collectLeaves(serverLevel, logs, pos);
+		if (canopy.isEmpty()) {
+			return;
 		}
+
+		// Nothing is dropped for a creative player, same as breaking blocks by hand.
+		boolean drop = !player.isCreative();
 		for (BlockPos logPos : logs) {
-			serverLevel.destroyBlock(logPos, true, player, 512);
+			serverLevel.destroyBlock(logPos, drop, player, 512);
 			held.hurtAndBreak(1, player, InteractionHand.MAIN_HAND);
 		}
-		for (BlockPos leafPos : leaves) {
-			serverLevel.destroyBlock(leafPos, true, player, 512);
+		if (nether) {
+			removeNetherCanopy(serverLevel, held, canopy);
+		} else {
+			for (BlockPos leafPos : canopy) {
+				serverLevel.destroyBlock(leafPos, drop, player, 512);
+			}
+		}
+
+		if (TreeChopperConfig.isAutoSaplingPlacement()) {
+			replant(serverLevel, logBlock, pos, logs);
 		}
 	}
 
@@ -178,12 +218,25 @@ public class FellingHandler {
 		}
 		seeds.addAll(neighborsOf(originPos, true));
 
+		// Normally the leaves touching a log all carry distance 1. Generated canopies can carry
+		// slightly stale distance values though (vanilla only corrects them on the next leaf
+		// update), so when no touching leaf says 1 fall back to the lowest distance among the
+		// touching ones - still the tree's own innermost layer, never a farther neighbor's.
+		int seedDistance = LeavesBlock.DECAY_DISTANCE;
+		for (BlockPos seed : seeds) {
+			if (seed.getY() >= originPos.getY()) {
+				BlockState state = level.getBlockState(seed);
+				if (isNaturalLeaf(state)) {
+					seedDistance = Math.min(seedDistance, LeavesBlock.getOptionalDistanceAt(state).orElse(LeavesBlock.DECAY_DISTANCE));
+				}
+			}
+		}
 		for (BlockPos seed : seeds) {
 			if (leaves.size() >= MAX_LEAVES || leaves.contains(seed) || seed.getY() < originPos.getY()) {
 				continue;
 			}
 			BlockState state = level.getBlockState(seed);
-			if (state.is(BlockTags.LEAVES) && LeavesBlock.getOptionalDistanceAt(state).orElse(-1) == 1) {
+			if (isNaturalLeaf(state) && LeavesBlock.getOptionalDistanceAt(state).orElse(-1) == seedDistance) {
 				leaves.add(seed);
 				queue.add(seed);
 			}
@@ -197,7 +250,7 @@ public class FellingHandler {
 					continue;
 				}
 				BlockState state = level.getBlockState(neighbor);
-				if (!state.is(BlockTags.LEAVES)) {
+				if (!isNaturalLeaf(state)) {
 					continue;
 				}
 				OptionalInt neighborDistance = LeavesBlock.getOptionalDistanceAt(state);
@@ -208,6 +261,12 @@ public class FellingHandler {
 			}
 		}
 		return leaves;
+	}
+
+	// Leaves vanilla itself would decay once unsupported. Placed leaves are persistent, so a
+	// player's hedge or roof touching a tree is neither felled nor mistaken for its canopy.
+	private static boolean isNaturalLeaf(final BlockState state) {
+		return state.is(BlockTags.LEAVES) && state.hasProperty(LeavesBlock.PERSISTENT) && !state.getValue(LeavesBlock.PERSISTENT);
 	}
 
 	private static boolean sameWoodFamily(final Block first, final Block second) {
@@ -224,24 +283,36 @@ public class FellingHandler {
 		return path;
 	}
 
-	private static boolean isNetherStem(Block block) {
-		return block == Blocks.CRIMSON_STEM || block == Blocks.WARPED_STEM;
+	private static boolean isNetherWood(final Block block) {
+		Identifier id = BuiltInRegistries.BLOCK.getKey(block);
+		if (!id.getNamespace().equals("minecraft")) return false;
+		String family = woodFamily(id.getPath());
+		return family.equals("crimson") || family.equals("warped");
 	}
 
-	private static void fellNetherCanopy(ServerLevel level, ItemStack axe, BlockPos origin, Set<BlockPos> logs) {
+	// Wart blocks and shroomlight connected to the felled stems, skipping any a player placed.
+	private static Set<BlockPos> collectNetherCanopy(final ServerLevel level, final BlockPos origin, final Set<BlockPos> logs) {
 		Set<BlockPos> canopy = new HashSet<>();
 		Deque<BlockPos> queue = new ArrayDeque<>();
 		List<BlockPos> seeds = new ArrayList<>(neighborsOf(origin, true));
 		for (BlockPos log : logs) seeds.addAll(neighborsOf(log, true));
 		for (BlockPos seed : seeds) {
-			if (canopy.size() < MAX_NETHER_CANOPY && isNetherCanopy(level.getBlockState(seed)) && canopy.add(seed)) queue.add(seed);
+			if (canopy.size() < MAX_NETHER_CANOPY && isNaturalNetherCanopy(level, seed) && canopy.add(seed)) queue.add(seed);
 		}
 		while (!queue.isEmpty() && canopy.size() < MAX_NETHER_CANOPY) {
 			for (BlockPos next : neighborsOf(queue.remove(), true)) {
 				if (canopy.size() >= MAX_NETHER_CANOPY) break;
-				if (isNetherCanopy(level.getBlockState(next)) && canopy.add(next)) queue.add(next);
+				if (isNaturalNetherCanopy(level, next) && canopy.add(next)) queue.add(next);
 			}
 		}
+		return canopy;
+	}
+
+	private static boolean isNaturalNetherCanopy(final ServerLevel level, final BlockPos pos) {
+		return PlayerPlacedBlocks.isNetherCanopy(level.getBlockState(pos)) && !PlayerPlacedBlocks.isPlaced(level, pos);
+	}
+
+	private static void removeNetherCanopy(final ServerLevel level, final ItemStack axe, final Set<BlockPos> canopy) {
 		int fortuneLevel = fortuneLevel(level, axe);
 		float fungusDropChance = NETHER_FUNGUS_DROP_CHANCES[Math.min(fortuneLevel, NETHER_FUNGUS_DROP_CHANCES.length - 1)];
 		for (BlockPos canopyPos : canopy) {
@@ -256,15 +327,84 @@ public class FellingHandler {
 		}
 	}
 
-	private static boolean isNetherCanopy(BlockState state) {
-		return state.is(Blocks.NETHER_WART_BLOCK) || state.is(Blocks.WARPED_WART_BLOCK) || state.is(Blocks.SHROOMLIGHT);
-	}
-
 	private static int fortuneLevel(ServerLevel level, ItemStack stack) {
 		Holder<Enchantment> fortune = level.registryAccess().lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.FORTUNE);
 		return EnchantmentHelper.getItemEnchantmentLevel(fortune, stack);
 	}
+
+	// Puts the felled tree's own sapling (fungus, propagule) back where its trunk stood. It only
+	// happens once the whole trunk is gone: the ground under the cut must still accept the
+	// sapling, which a remaining stump (or a cut made partway up) never does. Dark oak and pale
+	// oak only grow from a 2x2 of saplings, and spruce/jungle grow their mega form from one, so
+	// those follow the footprint of the 2x2 trunk that was just removed; every other tree gets a
+	// single sapling. Either all the saplings of a tree go down or none do.
+	private static void replant(final ServerLevel level, final Block logBlock, final BlockPos origin, final Set<BlockPos> logs) {
+		Identifier logId = BuiltInRegistries.BLOCK.getKey(logBlock);
+		if (!logId.getNamespace().equals("minecraft")) return;
+		String family = woodFamily(logId.getPath());
+		Block sapling = saplingFor(family);
+		if (sapling == null) return;
+
+		List<BlockPos> square = trunkSquare(level, origin, logs);
+		boolean needsFour = family.equals("dark_oak") || family.equals("pale_oak");
+		List<BlockPos> targets;
+		if (square != null && (needsFour || family.equals("spruce") || family.equals("jungle"))) {
+			targets = square;
+		} else if (needsFour) {
+			return;
+		} else {
+			targets = List.of(origin);
+		}
+
+		BlockState saplingState = sapling.defaultBlockState();
+		for (BlockPos target : targets) {
+			BlockState current = level.getBlockState(target);
+			if (!(current.isAir() || current.canBeReplaced()) || !saplingState.canSurvive(level, target)) {
+				return;
+			}
+		}
+		for (BlockPos target : targets) {
+			level.setBlock(target, saplingState, Block.UPDATE_ALL);
+		}
+	}
+
+	private static Block saplingFor(final String family) {
+		return switch (family) {
+			case "oak" -> Blocks.OAK_SAPLING;
+			case "spruce" -> Blocks.SPRUCE_SAPLING;
+			case "birch" -> Blocks.BIRCH_SAPLING;
+			case "jungle" -> Blocks.JUNGLE_SAPLING;
+			case "acacia" -> Blocks.ACACIA_SAPLING;
+			case "dark_oak" -> Blocks.DARK_OAK_SAPLING;
+			case "pale_oak" -> Blocks.PALE_OAK_SAPLING;
+			case "cherry" -> Blocks.CHERRY_SAPLING;
+			case "mangrove" -> Blocks.MANGROVE_PROPAGULE;
+			case "crimson" -> Blocks.CRIMSON_FUNGUS;
+			case "warped" -> Blocks.WARPED_FUNGUS;
+			default -> null;
+		};
+	}
+
+	// The 2x2 footprint of a thick trunk just felled, as the four ground columns, or null for a
+	// normal one-wide trunk. The felled trunk continues straight up from all four columns (the
+	// layer above the cut is part of `logs`), and the other three base logs were already broken
+	// to get here, so they are free again.
+	private static List<BlockPos> trunkSquare(final ServerLevel level, final BlockPos origin, final Set<BlockPos> logs) {
+		for (int dx = -1; dx <= 0; dx++) {
+			for (int dz = -1; dz <= 0; dz++) {
+				List<BlockPos> square = List.of(
+					origin.offset(dx, 0, dz), origin.offset(dx + 1, 0, dz), origin.offset(dx, 0, dz + 1), origin.offset(dx + 1, 0, dz + 1)
+				);
+				boolean thick = true;
+				for (BlockPos column : square) {
+					if (!logs.contains(column.above()) || !(column.equals(origin) || level.getBlockState(column).isAir())) {
+						thick = false;
+						break;
+					}
+				}
+				if (thick) return square;
+			}
+		}
+		return null;
+	}
 }
-
-
-

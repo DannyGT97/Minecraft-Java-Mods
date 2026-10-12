@@ -3,14 +3,16 @@
   "id": "treechopper",
   "version": "${version}",
   "name": "Tree Chopper",
-  "description": "Fells the connected upper part of a tree when breaking a log while sneaking with an axe.",
+  "description": "Fells the connected upper part of a natural tree when breaking a log with an axe. Never touches logs placed by players.",
   "authors": ["DannyGT97"],
   "icon": "assets/treechopper/icon.png",
   "license": "CC0-1.0",
   "environment": "*",
   "entrypoints": {
-    "main": ["com.dstsoftware.treechopper.TreeChopper"]
+    "main": ["com.dstsoftware.treechopper.TreeChopper"],
+    "modmenu": ["com.dstsoftware.treechopper.client.TreeChopperModMenu"]
   },
+  "mixins": ["treechopper.mixins.json"],
   "depends": {
     "fabricloader": ">=0.19.5",
     "minecraft": "~26.3",

@@ -4,7 +4,7 @@ Mod Fabric independiente que añade un botón de ordenado al inventario del juga
 
 - Ciclo de orden: Tipo → Nombre → Categoría → Rareza.
 - Compacta stacks compatibles antes de ordenar.
-- Añade botones para apilar stacks compatibles o mover todo entre el cofre/shulker y el inventario del jugador.
+- Añade botones para apilar (mueve solo los objetos que el destino ya contiene, rellenando stacks y usando huecos libres) o mover todo entre el cofre/shulker y el inventario del jugador.
 - Deja la hotbar intacta y ejecuta el ordenado en servidor.
 - Incluye traducciones en español e inglés.
 
