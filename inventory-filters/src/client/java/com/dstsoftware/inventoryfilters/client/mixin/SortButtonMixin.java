@@ -1,5 +1,6 @@
 package com.dstsoftware.inventoryfilters.client.mixin;
 
+import com.dstsoftware.inventoryfilters.client.config.InventoryFiltersConfig;
 import com.dstsoftware.inventoryfilters.client.gui.IconButton;
 import com.dstsoftware.inventoryfilters.client.gui.SortButtonHelper;
 import com.dstsoftware.inventoryfilters.inventory.InventorySorter;
@@ -52,7 +53,7 @@ public abstract class SortButtonMixin extends Screen {
     @Inject(method = "init", at = @At("TAIL"))
     private void inventoryfilters$addButtons(CallbackInfo ci) {
         AbstractContainerMenu menu = getMenu();
-        if (!InventorySorter.supports(menu)) return;
+        if (!InventoryFiltersConfig.isEnabled() || !InventorySorter.supports(menu)) return;
 
         if (InventorySorter.hasContainerSection(menu)) {
             inventoryfilters$containerButtons[0] = inventoryfilters$addButton(
@@ -131,7 +132,7 @@ public abstract class SortButtonMixin extends Screen {
 
     @Unique
     private void inventoryfilters$sortClicked(boolean playerInventory) {
-        SortButtonHelper.cycleAndSend(playerInventory);
+        SortButtonHelper.send(playerInventory);
         Tooltip tooltip = Tooltip.create(SortButtonHelper.tooltip());
         if (inventoryfilters$containerButtons[0] != null) inventoryfilters$containerButtons[0].setTooltip(tooltip);
         if (inventoryfilters$playerButtons[0] != null) inventoryfilters$playerButtons[0].setTooltip(tooltip);
@@ -140,11 +141,12 @@ public abstract class SortButtonMixin extends Screen {
 
     @Unique
     private void inventoryfilters$actionClicked(boolean toContainer, boolean stackOnly, Button[] column, int index) {
+        if (!InventoryFiltersConfig.isEnabled()) return;
         if (!ClientPlayNetworking.canSend(ContainerTransferPayload.TYPE)) {
             SortButtonHelper.showServerRequired();
             return;
         }
-        ClientPlayNetworking.send(new ContainerTransferPayload(toContainer, stackOnly));
+        ClientPlayNetworking.send(new ContainerTransferPayload(toContainer, stackOnly, InventoryFiltersConfig.isIncludeHotbar()));
         inventoryfilters$markSelected(column[index]);
     }
 

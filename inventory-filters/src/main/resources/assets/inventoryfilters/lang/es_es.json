@@ -3,10 +3,16 @@
   "inventoryfilters.sort.name": "Nombre (A-Z)",
   "inventoryfilters.sort.category": "Categoría",
   "inventoryfilters.sort.rarity": "Rareza",
-  "inventoryfilters.sort.current": "Ordenado por: %s",
+  "inventoryfilters.sort.current": "Ordenar por: %s",
+  "inventoryfilters.sort.current_reversed": "Ordenar por: %s (invertido)",
   "inventoryfilters.stack_from_container.tooltip": "Apilar desde el contenedor",
   "inventoryfilters.stack_into_container.tooltip": "Apilar en el contenedor",
   "inventoryfilters.take_all.tooltip": "Sacar todo",
   "inventoryfilters.place_all.tooltip": "Colocar todo",
-  "inventoryfilters.server_required": "Inventory Filters también debe estar instalado en el servidor."
+  "inventoryfilters.server_required": "Inventory Filters también debe estar instalado en el servidor.",
+  "inventoryfilters.config.title": "Ajustes de Inventory Filters",
+  "inventoryfilters.config.enabled": "Inventory Filters: %s",
+  "inventoryfilters.config.sort_mode": "Tipo de ordenación: %s",
+  "inventoryfilters.config.reverse": "Invertir orden: %s",
+  "inventoryfilters.config.hotbar": "Incluir hotbar: %s"
 }

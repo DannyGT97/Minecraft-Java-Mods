@@ -7,21 +7,21 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 
 // Backs the Transfer-all and Auto-stack buttons: bulk-moves items between the player's own main
-// storage (hotbar excluded, same as InventorySorter) and whatever external container is open.
+// storage (hotbar only when asked for, same as InventorySorter) and whatever external container is open.
 // Transfer-all moves everything; auto-stack only moves the items the destination already holds
 // (quick-stack), topping up its partial stacks first and then using free slots. Both walk the
 // source front-to-back and greedily fill the destination - the same
 // mechanics as repeatedly shift-clicking every source slot.
 public class InventoryTransferer {
-	public static void transferAll(final ServerPlayer player, final boolean toContainer) {
-		run(player, toContainer, false);
+	public static void transferAll(final ServerPlayer player, final boolean toContainer, final boolean includeHotbar) {
+		run(player, toContainer, false, includeHotbar);
 	}
 
-	public static void autoStack(final ServerPlayer player, final boolean toContainer) {
-		run(player, toContainer, true);
+	public static void autoStack(final ServerPlayer player, final boolean toContainer, final boolean includeHotbar) {
+		run(player, toContainer, true, includeHotbar);
 	}
 
-	private static void run(final ServerPlayer player, final boolean toContainer, final boolean stackOnly) {
+	private static void run(final ServerPlayer player, final boolean toContainer, final boolean stackOnly, final boolean includeHotbar) {
 		AbstractContainerMenu menu = player.containerMenu;
 		Container container = InventorySorter.externalContainer(menu);
 		if (container == null) {
@@ -29,10 +29,11 @@ public class InventoryTransferer {
 		}
 
 		Inventory inventory = player.getInventory();
+		int firstSlot = InventorySorter.firstPlayerSlot(includeHotbar);
 		if (toContainer) {
-			move(inventory, Inventory.SELECTION_SIZE, Inventory.INVENTORY_SIZE, container, 0, container.getContainerSize(), stackOnly, menu, true);
+			move(inventory, firstSlot, Inventory.INVENTORY_SIZE, container, 0, container.getContainerSize(), stackOnly, menu, true);
 		} else {
-			move(container, 0, container.getContainerSize(), inventory, Inventory.SELECTION_SIZE, Inventory.INVENTORY_SIZE, stackOnly, menu, false);
+			move(container, 0, container.getContainerSize(), inventory, firstSlot, Inventory.INVENTORY_SIZE, stackOnly, menu, false);
 		}
 
 		menu.broadcastChanges();

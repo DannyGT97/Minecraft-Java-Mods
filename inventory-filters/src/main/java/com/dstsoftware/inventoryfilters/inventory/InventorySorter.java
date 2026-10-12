@@ -17,8 +17,8 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 
-// Sorts whichever container is open: the player's own main storage (never the hotbar - the 9
-// slots stay put on purpose) when in the plain inventory screen, or the chest-shaped container
+// Sorts whichever container is open: the player's own main storage (the hotbar - the 9
+// slots stay put unless the player asks for it) when in the plain inventory screen, or the chest-shaped container
 // itself  otherwise.
 // Screens with a distinct external container (see hasContainerSection) get a second button for
 // sorting the player's own inventory without leaving the screen - sortPlayerInventory picks
@@ -58,18 +58,25 @@ public class InventorySorter {
 		return menu instanceof ChestMenu || menu instanceof ShulkerBoxMenu;
 	}
 
-	public static void sort(final ServerPlayer player, final int mode, final boolean sortPlayerInventory) {
+	// First player slot touched by sorting and bulk moves: the hotbar (0-8) only when the player asked for it.
+	public static int firstPlayerSlot(final boolean includeHotbar) {
+		return includeHotbar ? 0 : Inventory.SELECTION_SIZE;
+	}
+
+	public static void sort(
+		final ServerPlayer player, final int mode, final boolean sortPlayerInventory, final boolean reverse, final boolean includeHotbar
+	) {
 		AbstractContainerMenu menu = player.containerMenu;
 		if (!supports(menu)) {
 			return;
 		}
 
 		if (sortPlayerInventory || menu instanceof InventoryMenu) {
-			sortRange(player.getInventory(), Inventory.SELECTION_SIZE, Inventory.INVENTORY_SIZE, mode);
+			sortRange(player.getInventory(), firstPlayerSlot(includeHotbar), Inventory.INVENTORY_SIZE, mode, reverse);
 		} else {
 			Container container = externalContainer(menu);
 			if (container != null) {
-				sortRange(container, 0, container.getContainerSize(), mode);
+				sortRange(container, 0, container.getContainerSize(), mode, reverse);
 			}
 		}
 
@@ -89,7 +96,7 @@ public class InventorySorter {
 		return null;
 	}
 
-	private static void sortRange(final Container container, final int from, final int to, final int mode) {
+	private static void sortRange(final Container container, final int from, final int to, final int mode, final boolean reverse) {
 		List<ItemStack> stacks = new ArrayList<>();
 		for (int i = from; i < to; i++) {
 			ItemStack stack = container.getItem(i);
@@ -99,7 +106,7 @@ public class InventorySorter {
 		}
 
 		List<ItemStack> merged = mergeStacks(stacks);
-		merged.sort(comparatorFor(mode));
+		merged.sort(reverse ? comparatorFor(mode).reversed() : comparatorFor(mode));
 
 		int index = from;
 		for (ItemStack stack : merged) {

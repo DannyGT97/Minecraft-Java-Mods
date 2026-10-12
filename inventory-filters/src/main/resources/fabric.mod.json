@@ -8,7 +8,10 @@
   "icon": "assets/inventoryfilters/icon.png",
   "license": "CC0-1.0",
   "environment": "*",
-  "entrypoints": { "main": ["com.dstsoftware.inventoryfilters.InventoryFilters"] },
+  "entrypoints": {
+    "main": ["com.dstsoftware.inventoryfilters.InventoryFilters"],
+    "modmenu": ["com.dstsoftware.inventoryfilters.client.InventoryFiltersModMenu"]
+  },
   "mixins": [
     "inventoryfilters.mixins.json",
     { "config": "inventoryfilters.client.mixins.json", "environment": "client" }

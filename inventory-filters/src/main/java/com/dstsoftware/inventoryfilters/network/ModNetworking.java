@@ -12,7 +12,7 @@ public final class ModNetworking {
         PayloadTypeRegistry.serverboundPlay().register(SortContainerPayload.TYPE, SortContainerPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(SortContainerPayload.TYPE, (payload, context) ->
             context.server().execute(() ->
-                InventorySorter.sort(context.player(), payload.mode(), payload.playerInventory())
+                InventorySorter.sort(context.player(), payload.mode(), payload.playerInventory(), payload.reverse(), payload.includeHotbar())
             )
         );
 
@@ -20,9 +20,9 @@ public final class ModNetworking {
         ServerPlayNetworking.registerGlobalReceiver(ContainerTransferPayload.TYPE, (payload, context) ->
             context.server().execute(() -> {
                 if (payload.stackOnly()) {
-                    InventoryTransferer.autoStack(context.player(), payload.toContainer());
+                    InventoryTransferer.autoStack(context.player(), payload.toContainer(), payload.includeHotbar());
                 } else {
-                    InventoryTransferer.transferAll(context.player(), payload.toContainer());
+                    InventoryTransferer.transferAll(context.player(), payload.toContainer(), payload.includeHotbar());
                 }
             })
         );

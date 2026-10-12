@@ -1,29 +1,32 @@
 package com.dstsoftware.inventoryfilters.client.gui;
 
-import com.dstsoftware.inventoryfilters.inventory.InventorySorter;
+import com.dstsoftware.inventoryfilters.client.config.InventoryFiltersConfig;
 import com.dstsoftware.inventoryfilters.network.SortContainerPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
 public final class SortButtonHelper {
-    private static final String[] MODE_KEYS = {"type", "name", "category", "rarity"};
-    private static int mode = InventorySorter.MODE_TYPE;
-
     private SortButtonHelper() {}
 
     public static Component tooltip() {
-        return Component.translatable("inventoryfilters.sort.current",
-            Component.translatable("inventoryfilters.sort." + MODE_KEYS[mode]));
+        Component mode = Component.translatable("inventoryfilters.sort." + InventoryFiltersConfig.modeKey(InventoryFiltersConfig.getSortMode()));
+        return Component.translatable(
+            InventoryFiltersConfig.isReverseOrder() ? "inventoryfilters.sort.current_reversed" : "inventoryfilters.sort.current", mode
+        );
     }
 
-    public static void cycleAndSend(boolean playerInventory) {
+    public static void send(boolean playerInventory) {
+        if (!InventoryFiltersConfig.isEnabled()) {
+            return;
+        }
         if (!ClientPlayNetworking.canSend(SortContainerPayload.TYPE)) {
             showServerRequired();
             return;
         }
-        ClientPlayNetworking.send(new SortContainerPayload(mode, playerInventory));
-        mode = (mode + 1) % InventorySorter.MODE_COUNT;
+        ClientPlayNetworking.send(new SortContainerPayload(
+            InventoryFiltersConfig.getSortMode(), playerInventory, InventoryFiltersConfig.isReverseOrder(), InventoryFiltersConfig.isIncludeHotbar()
+        ));
     }
 
     public static void showServerRequired() {
@@ -33,5 +36,3 @@ public final class SortButtonHelper {
         }
     }
 }
-
-
