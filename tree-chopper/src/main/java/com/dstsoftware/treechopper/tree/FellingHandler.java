@@ -8,6 +8,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Predicate;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -36,7 +37,10 @@ import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.gameevent.GameEvent;
+import org.jspecify.annotations.Nullable;
 
 // Chopping a log while sneaking with an axe fells the connected logs above the cut and their attached leaf canopy.
 public class FellingHandler {
@@ -47,8 +51,14 @@ public class FellingHandler {
 	private static final int MAX_NETHER_CANOPY = 1024;
 	private static final float[] NETHER_FUNGUS_DROP_CHANCES = {0.05F, 0.0625F, 0.083333336F, 0.1F};
 	private static final RandomSource RANDOM = RandomSource.create();
-	// Saplings wait this long (2 seconds) before being planted so a still-swinging axe can't hit them.
-	private static final int SAPLING_DELAY_TICKS = 40;
+	// Saplings wait this long (half a second) before being planted so the swing that just felled the
+	// tree can't hit them.
+	private static final int SAPLING_DELAY_TICKS = 10;
+	// Every block broken the vanilla way plays its own break sound and particles, and a whole tree
+	// breaking at once stacks hundreds of them into one deafening burst. Only a handful of blocks,
+	// spread evenly over the tree, play them; the rest are removed silently.
+	private static final int MAX_LOG_EFFECTS = 8;
+	private static final int MAX_LEAF_EFFECTS = 4;
 	private static final List<PendingSapling> PENDING_SAPLINGS = new ArrayList<>();
 	private static long tickCounter;
 
@@ -135,20 +145,24 @@ public class FellingHandler {
 
 		// Nothing is dropped for a creative player, same as breaking blocks by hand.
 		boolean drop = !player.isCreative();
+		int logIndex = 0;
+		int logStep = effectStep(logs.size(), MAX_LOG_EFFECTS);
 		for (BlockPos logPos : logs) {
-			serverLevel.destroyBlock(logPos, drop, player, 512);
+			destroyBlock(serverLevel, logPos, drop, player, logIndex++ % logStep == 0);
 			held.hurtAndBreak(1, player, InteractionHand.MAIN_HAND);
 		}
 		if (nether) {
 			removeNetherCanopy(serverLevel, held, canopy);
 		} else {
+			int leafIndex = 0;
+			int leafStep = effectStep(canopy.size(), MAX_LEAF_EFFECTS);
 			for (BlockPos leafPos : canopy) {
-				serverLevel.destroyBlock(leafPos, drop, player, 512);
+				destroyBlock(serverLevel, leafPos, drop, player, leafIndex++ % leafStep == 0);
 			}
 		}
 
 		if (TreeChopperConfig.isAutoSaplingPlacement()) {
-			replant(serverLevel, logBlock, pos, logs);
+			replant(serverLevel, player, logBlock, pos, logs);
 		}
 	}
 
@@ -341,13 +355,40 @@ public class FellingHandler {
 		return EnchantmentHelper.getItemEnchantmentLevel(fortune, stack);
 	}
 
-	// Puts the felled tree's own sapling (fungus, propagule) back where its trunk stood. It only
-	// happens once the whole trunk is gone: the ground under the cut must still accept the
-	// sapling, which a remaining stump (or a cut made partway up) never does. Dark oak and pale
-	// oak only grow from a 2x2 of saplings, and spruce/jungle grow their mega form from one, so
-	// those follow the footprint of the 2x2 trunk that was just removed; every other tree gets a
-	// single sapling. Either all the saplings of a tree go down or none do.
-	private static void replant(final ServerLevel level, final Block logBlock, final BlockPos origin, final Set<BlockPos> logs) {
+	// Breaks a block like ServerLevel.destroyBlock does (drops, block removal, game event) but only
+	// plays the break sound and particles when `effects` is set - see MAX_LOG_EFFECTS.
+	private static void destroyBlock(final ServerLevel level, final BlockPos pos, final boolean drop, final Player player, final boolean effects) {
+		if (effects) {
+			level.destroyBlock(pos, drop, player, 512);
+			return;
+		}
+		BlockState state = level.getBlockState(pos);
+		if (state.isAir()) {
+			return;
+		}
+		if (drop) {
+			Block.dropResources(state, level, pos, state.hasBlockEntity() ? level.getBlockEntity(pos) : null, player, ItemStack.EMPTY);
+		}
+		if (level.setBlock(pos, level.getFluidState(pos).createLegacyBlock(), Block.UPDATE_ALL, 512)) {
+			level.gameEvent(GameEvent.BLOCK_DESTROY, pos, GameEvent.Context.of(player, state));
+		}
+	}
+
+	// Distance between the blocks that keep their sound: 1 (every block) while the count is at or
+	// under the cap, then spread evenly.
+	private static int effectStep(final int blocks, final int maxEffects) {
+		return Math.max(1, (blocks + maxEffects - 1) / maxEffects);
+	}
+
+	// Puts the felled tree's own sapling (fungus, propagule) back where its trunk stood, taken from
+	// the player's inventory: nothing is planted for a player who carries none. It only happens once
+	// the whole trunk is gone: the ground under the cut must still accept the sapling, which a
+	// remaining stump (or a cut made partway up) never does. Dark oak and pale oak only grow from a
+	// 2x2 of saplings, and spruce/jungle grow their mega form from one, so those follow the
+	// footprint of the 2x2 trunk that was just removed (a spruce or jungle falls back to a single
+	// sapling when the player carries fewer than four); every other tree gets a single sapling.
+	// Either all the saplings of a tree go down or none do.
+	private static void replant(final ServerLevel level, final Player player, final Block logBlock, final BlockPos origin, final Set<BlockPos> logs) {
 		Identifier logId = BuiltInRegistries.BLOCK.getKey(logBlock);
 		if (!logId.getNamespace().equals("minecraft")) return;
 		String family = woodFamily(logId.getPath());
@@ -356,23 +397,50 @@ public class FellingHandler {
 
 		List<BlockPos> square = trunkSquare(level, origin, logs);
 		boolean needsFour = family.equals("dark_oak") || family.equals("pale_oak");
+		boolean mayBeMega = family.equals("spruce") || family.equals("jungle");
 		List<BlockPos> targets;
-		if (square != null && (needsFour || family.equals("spruce") || family.equals("jungle"))) {
+		List<BlockPos> fallback = null;
+		if (square != null && (needsFour || mayBeMega)) {
 			targets = square;
+			if (mayBeMega) {
+				fallback = List.of(origin);
+			}
 		} else if (needsFour) {
 			return;
 		} else {
 			targets = List.of(origin);
 		}
 
-		BlockState saplingState = sapling.defaultBlockState();
-		if (!canPlant(level, targets, saplingState)) {
-			return;
-		}
 		// Not planted right away: the swing that just felled the tree is usually still going, and
 		// a sapling pops instantly, so the very next hit would knock it out again. It is planted a
-		// moment later instead, once the chopping is over.
-		PENDING_SAPLINGS.add(new PendingSapling(level, targets, saplingState, tickCounter + SAPLING_DELAY_TICKS));
+		// moment later instead, once the chopping is over - and only then taken from the inventory.
+		PENDING_SAPLINGS.add(new PendingSapling(
+			level, player.getUUID(), sapling, targets, fallback, tickCounter + SAPLING_DELAY_TICKS
+		));
+	}
+
+	private static int countItem(final Player player, final Item item) {
+		int count = 0;
+		for (int slot = 0; slot < player.getInventory().getContainerSize(); slot++) {
+			ItemStack stack = player.getInventory().getItem(slot);
+			if (stack.is(item)) {
+				count += stack.getCount();
+			}
+		}
+		return count;
+	}
+
+	private static void takeItem(final Player player, final Item item, final int amount) {
+		int remaining = amount;
+		for (int slot = 0; slot < player.getInventory().getContainerSize() && remaining > 0; slot++) {
+			ItemStack stack = player.getInventory().getItem(slot);
+			if (stack.is(item)) {
+				int taken = Math.min(stack.getCount(), remaining);
+				stack.shrink(taken);
+				remaining -= taken;
+			}
+		}
+		player.getInventory().setChanged();
 	}
 
 	private static boolean canPlant(final ServerLevel level, final List<BlockPos> targets, final BlockState saplingState) {
@@ -395,15 +463,43 @@ public class FellingHandler {
 				continue;
 			}
 			iterator.remove();
-			if (canPlant(pending.level(), pending.targets(), pending.state())) {
-				for (BlockPos target : pending.targets()) {
-					pending.level().setBlock(target, pending.state(), Block.UPDATE_ALL);
-				}
-			}
+			plant(pending);
 		}
 	}
 
-	private record PendingSapling(ServerLevel level, List<BlockPos> targets, BlockState state, long dueTick) {}
+	// Plants the sapling(s) of one felled tree, if the player still carries enough of them and is
+	// still in the same level. Creative players keep their items, like placing blocks by hand.
+	private static void plant(final PendingSapling pending) {
+		ServerLevel level = pending.level();
+		Player player = level.getServer().getPlayerList().getPlayer(pending.playerId());
+		if (player == null || player.level() != level) {
+			return;
+		}
+
+		Item item = pending.sapling().asItem();
+		BlockState state = pending.sapling().defaultBlockState();
+		int carried = countItem(player, item);
+		List<BlockPos> chosen = null;
+		if (carried >= pending.targets().size() && canPlant(level, pending.targets(), state)) {
+			chosen = pending.targets();
+		} else if (pending.fallback() != null && carried >= pending.fallback().size() && canPlant(level, pending.fallback(), state)) {
+			chosen = pending.fallback();
+		}
+		if (chosen == null) {
+			return;
+		}
+
+		if (!player.isCreative()) {
+			takeItem(player, item, chosen.size());
+		}
+		for (BlockPos target : chosen) {
+			level.setBlock(target, state, Block.UPDATE_ALL);
+		}
+	}
+
+	private record PendingSapling(
+		ServerLevel level, UUID playerId, Block sapling, List<BlockPos> targets, @Nullable List<BlockPos> fallback, long dueTick
+	) {}
 
 	private static Block saplingFor(final String family) {
 		return switch (family) {

@@ -54,8 +54,8 @@ dependencies {
 }
 
 processResources {
-	// Source templates (Photoshop files) stay in the repo and out of the jar.
-	exclude "**/*.psd"
+	// Templates and gallery screenshots stay in the repo and out of the jar.
+	exclude "**/*.psd", "**/templates/**", "**/showcase/**"
 	def version = project.version
 	inputs.property "version", version
 

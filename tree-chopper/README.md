@@ -25,7 +25,7 @@ Available in Mod Menu (Mods > Tree Chopper > Configure) or in `config/treechoppe
 | Nether Warped and Crimson Fungi Felling | ON | OFF leaves nether fungi trees as normal blocks. |
 | Automatic sapling placement | OFF | Plants the felled tree's sapling where the trunk stood. |
 
-Saplings are planted two seconds after the felling, so a swing that is still in motion cannot knock them out. Automatic sapling placement only happens when the whole trunk was cut (cutting partway up leaves the stump and plants nothing) and the ground accepts the sapling. It places one sapling for most trees (poplar included), a 2x2 of four for dark oak and pale oak, and four for a mega spruce or mega jungle trunk. Crimson and warped trees plant their fungus and mangroves their propagule. The saplings are placed for free; they are not taken from drops or the inventory.
+Saplings are planted half a second after the felling, so a swing that is still in motion cannot knock them out. They are taken from your inventory: a player who carries no saplings gets nothing planted (creative players keep their items). Automatic sapling placement only happens when the whole trunk was cut (cutting partway up leaves the stump and plants nothing) and the ground accepts the sapling. It places one sapling for most trees (poplar included), a 2x2 of four for dark oak and pale oak, and four for a mega spruce or mega jungle trunk. Crimson and warped trees plant their fungus and mangroves their propagule. A dark oak or pale oak needs all four saplings in the inventory; a mega spruce or jungle plants a single one when you carry fewer than four.
 
 ## Requirements
 
