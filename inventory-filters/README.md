@@ -7,6 +7,7 @@ Mod Fabric independiente que añade un botón de ordenado al inventario del juga
 - Compacta stacks compatibles antes de ordenar.
 - Añade botones para apilar (mueve solo los objetos que el destino ya contiene, rellenando stacks y usando huecos libres) o mover todo entre el cofre/shulker y el inventario del jugador.
 - La hotbar queda intacta por defecto; se puede incluir en ordenar, mover y apilar desde los ajustes.
+- Los botones tienen dos temas, Claro (por defecto) y Oscuro, elegibles en los ajustes.
 - Ejecuta el ordenado en servidor. Incluye traducciones en español e inglés.
 
 ## Ajustes
@@ -19,6 +20,7 @@ Disponibles en Mod Menu (Mods > Inventory Filters > Configure) o en `config/inve
 | Tipo de ordenación | Tipo | Tipo, Nombre, Categoría o Rareza. |
 | Invertir orden | OFF | Orden inverso al elegido. |
 | Incluir hotbar | OFF | Incluye la hotbar al ordenar, mover y apilar. |
+| Tema de los botones | Claro | Aspecto de los botones: Claro u Oscuro. |
 
 ## Requisitos
 

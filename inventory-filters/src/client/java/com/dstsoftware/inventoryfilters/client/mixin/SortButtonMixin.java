@@ -1,6 +1,7 @@
 package com.dstsoftware.inventoryfilters.client.mixin;
 
 import com.dstsoftware.inventoryfilters.client.config.InventoryFiltersConfig;
+import com.dstsoftware.inventoryfilters.client.gui.ButtonTheme;
 import com.dstsoftware.inventoryfilters.client.gui.IconButton;
 import com.dstsoftware.inventoryfilters.client.gui.SortButtonHelper;
 import com.dstsoftware.inventoryfilters.inventory.InventorySorter;
@@ -26,19 +27,6 @@ public abstract class SortButtonMixin extends Screen {
     private static final int SIZE = 14;
     private static final int PITCH = 14;
     private static final int GAP = 2;
-    private static final Identifier ICON_SORT = id("icon_sort.png");
-    private static final Identifier ICON_SORT_SELECTED = id("icon_sort_blue.png");
-    private static final Identifier ICON_TRANSFER = id("icon_transfer.png");
-    private static final Identifier ICON_TRANSFER_SELECTED = id("icon_transfer_blue.png");
-    private static final Identifier ICON_STACK_DOWN = id("icon_stack_down.png");
-    private static final Identifier ICON_STACK_DOWN_SELECTED = id("icon_stack_down_blue.png");
-    private static final Identifier ICON_STACK_UP = id("icon_stack_up.png");
-    private static final Identifier ICON_STACK_UP_SELECTED = id("icon_stack_up_blue.png");
-
-    private static Identifier id(String name) {
-        return Identifier.fromNamespaceAndPath("inventoryfilters", "textures/gui/sort/" + name);
-    }
-
     @Shadow protected int leftPos;
     @Shadow protected int topPos;
     @Shadow protected int imageWidth;
@@ -54,36 +42,37 @@ public abstract class SortButtonMixin extends Screen {
     private void inventoryfilters$addButtons(CallbackInfo ci) {
         AbstractContainerMenu menu = getMenu();
         if (!InventoryFiltersConfig.isEnabled() || !InventorySorter.supports(menu)) return;
+        ButtonTheme theme = InventoryFiltersConfig.getButtonTheme();
 
         if (InventorySorter.hasContainerSection(menu)) {
             inventoryfilters$containerButtons[0] = inventoryfilters$addButton(
-                ICON_SORT, ICON_SORT_SELECTED, SortButtonHelper.tooltip(),
+                theme.icon("sort"), theme.selectedIcon("sort"), SortButtonHelper.tooltip(),
                 b -> inventoryfilters$sortClicked(false)
             );
             inventoryfilters$containerButtons[1] = inventoryfilters$addButton(
-                ICON_TRANSFER, ICON_TRANSFER_SELECTED,
+                theme.icon("transfer"), theme.selectedIcon("transfer"),
                 Component.translatable("inventoryfilters.stack_from_container.tooltip"),
                 b -> inventoryfilters$actionClicked(false, true, inventoryfilters$containerButtons, 1)
             );
             inventoryfilters$containerButtons[2] = inventoryfilters$addButton(
-                ICON_STACK_DOWN, ICON_STACK_DOWN_SELECTED,
+                theme.icon("stack_down"), theme.selectedIcon("stack_down"),
                 Component.translatable("inventoryfilters.take_all.tooltip"),
                 b -> inventoryfilters$actionClicked(false, false, inventoryfilters$containerButtons, 2)
             );
         }
 
         inventoryfilters$playerButtons[0] = inventoryfilters$addButton(
-            ICON_SORT, ICON_SORT_SELECTED, SortButtonHelper.tooltip(),
+            theme.icon("sort"), theme.selectedIcon("sort"), SortButtonHelper.tooltip(),
             b -> inventoryfilters$sortClicked(true)
         );
         if (InventorySorter.hasContainerSection(menu)) {
             inventoryfilters$playerButtons[1] = inventoryfilters$addButton(
-                ICON_TRANSFER, ICON_TRANSFER_SELECTED,
+                theme.icon("transfer"), theme.selectedIcon("transfer"),
                 Component.translatable("inventoryfilters.stack_into_container.tooltip"),
                 b -> inventoryfilters$actionClicked(true, true, inventoryfilters$playerButtons, 1)
             );
             inventoryfilters$playerButtons[2] = inventoryfilters$addButton(
-                ICON_STACK_UP, ICON_STACK_UP_SELECTED,
+                theme.icon("stack_up"), theme.selectedIcon("stack_up"),
                 Component.translatable("inventoryfilters.place_all.tooltip"),
                 b -> inventoryfilters$actionClicked(true, false, inventoryfilters$playerButtons, 2)
             );

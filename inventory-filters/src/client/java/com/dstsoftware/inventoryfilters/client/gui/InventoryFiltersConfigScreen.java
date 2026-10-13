@@ -40,6 +40,17 @@ public final class InventoryFiltersConfigScreen extends SettingsScreen {
 				Component.translatable("inventoryfilters.config.category.hotbar.desc"),
 				List.of(Option.toggle("inventoryfilters.config.hotbar", InventoryFiltersConfig::isIncludeHotbar,
 					InventoryFiltersConfig::setIncludeHotbar, InventoryFiltersConfig::isEnabled))
+			),
+			new Category(
+				Component.translatable("inventoryfilters.config.category.appearance"),
+				Component.translatable("inventoryfilters.config.category.appearance.desc"),
+				List.of(new Option(
+					() -> Component.translatable("inventoryfilters.config.theme",
+						Component.translatable("inventoryfilters.theme." + InventoryFiltersConfig.getButtonTheme().key()).withStyle(ChatFormatting.GREEN)),
+					() -> InventoryFiltersConfig.setButtonTheme(
+						ButtonTheme.values()[(InventoryFiltersConfig.getButtonTheme().ordinal() + 1) % ButtonTheme.values().length]),
+					InventoryFiltersConfig::isEnabled
+				))
 			)
 		);
 	}

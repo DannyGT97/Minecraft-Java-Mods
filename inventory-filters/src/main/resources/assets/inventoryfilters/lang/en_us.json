@@ -20,5 +20,10 @@
   "inventoryfilters.config.category.sorting": "Sorting",
   "inventoryfilters.config.category.sorting.desc": "How the sort button orders items.",
   "inventoryfilters.config.category.hotbar": "Hotbar",
-  "inventoryfilters.config.category.hotbar.desc": "Whether the hotbar takes part in sorting, moving and stacking."
+  "inventoryfilters.config.category.hotbar.desc": "Whether the hotbar takes part in sorting, moving and stacking.",
+  "inventoryfilters.config.category.appearance": "Appearance",
+  "inventoryfilters.config.category.appearance.desc": "How the sort and stack buttons look.",
+  "inventoryfilters.config.theme": "Button theme: %s",
+  "inventoryfilters.theme.light": "Light",
+  "inventoryfilters.theme.dark": "Dark"
 }

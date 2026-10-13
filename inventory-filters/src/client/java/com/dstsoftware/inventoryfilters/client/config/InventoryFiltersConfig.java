@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 
+import com.dstsoftware.inventoryfilters.client.gui.ButtonTheme;
 import com.dstsoftware.inventoryfilters.inventory.InventorySorter;
 import net.fabricmc.loader.api.FabricLoader;
 
@@ -19,6 +20,7 @@ public final class InventoryFiltersConfig {
 	private static final String SORT_MODE_KEY = "sortMode";
 	private static final String REVERSE_KEY = "reverseOrder";
 	private static final String INCLUDE_HOTBAR_KEY = "includeHotbar";
+	private static final String BUTTON_THEME_KEY = "buttonTheme";
 	private static final String[] MODE_NAMES = {"type", "name", "category", "rarity"};
 	private static final Properties VALUES = new Properties();
 	private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("inventoryfilters.properties");
@@ -38,6 +40,7 @@ public final class InventoryFiltersConfig {
 			VALUES.putIfAbsent(SORT_MODE_KEY, MODE_NAMES[InventorySorter.MODE_TYPE]);
 			VALUES.putIfAbsent(REVERSE_KEY, "false");
 			VALUES.putIfAbsent(INCLUDE_HOTBAR_KEY, "false");
+			VALUES.putIfAbsent(BUTTON_THEME_KEY, ButtonTheme.LIGHT.key());
 			loaded = true;
 			save();
 		} catch (IOException exception) {
@@ -91,6 +94,16 @@ public final class InventoryFiltersConfig {
 		set(INCLUDE_HOTBAR_KEY, Boolean.toString(include));
 	}
 
+	/** Look of the buttons: Light (default) or Dark. */
+	public static synchronized ButtonTheme getButtonTheme() {
+		ensureLoaded();
+		return ButtonTheme.fromKey(VALUES.getProperty(BUTTON_THEME_KEY, ButtonTheme.LIGHT.key()));
+	}
+
+	public static synchronized void setButtonTheme(ButtonTheme theme) {
+		set(BUTTON_THEME_KEY, theme.key());
+	}
+
 	/** Restores every setting to its fresh-install default. */
 	public static synchronized void resetToDefaults() {
 		ensureLoaded();
@@ -98,6 +111,7 @@ public final class InventoryFiltersConfig {
 		VALUES.setProperty(SORT_MODE_KEY, MODE_NAMES[InventorySorter.MODE_TYPE]);
 		VALUES.setProperty(REVERSE_KEY, "false");
 		VALUES.setProperty(INCLUDE_HOTBAR_KEY, "false");
+		VALUES.setProperty(BUTTON_THEME_KEY, ButtonTheme.LIGHT.key());
 		save();
 	}
 
