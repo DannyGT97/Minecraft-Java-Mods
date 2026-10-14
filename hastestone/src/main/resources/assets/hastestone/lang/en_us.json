@@ -1,0 +1,17 @@
+{
+  "hastestone.config.title": "Hastestone Settings",
+  "hastestone.config.category.general": "General",
+  "hastestone.config.category.general.desc": "Main switch of the mod.",
+  "hastestone.config.category.deepslate": "Deepslate",
+  "hastestone.config.category.deepslate.desc": "Instant mining with Haste II and mining at stone speed.",
+  "hastestone.config.category.cobblestone": "Cobblestone",
+  "hastestone.config.category.cobblestone.desc": "Instant mining with Haste II.",
+  "hastestone.config.enabled": "Hastestone: %s",
+  "hastestone.config.enabled.tooltip": "Master switch. When OFF, mining is exactly vanilla.",
+  "hastestone.config.deepslate_instant": "Deepslate instant with Haste II: %s",
+  "hastestone.config.deepslate_instant.tooltip": "With Haste II (a beacon, a potion...), deepslate breaks at once whenever stone would with the same pickaxe and enchantments.",
+  "hastestone.config.deepslate_stone_speed": "Deepslate at stone speed: %s",
+  "hastestone.config.deepslate_stone_speed.tooltip": "Deepslate takes exactly as long to mine as stone does with the same tool, with or without a beacon. Wood, stone, iron, diamond and netherite pickaxes each keep their own stone timing.",
+  "hastestone.config.cobblestone_instant": "Cobblestone instant with Haste II: %s",
+  "hastestone.config.cobblestone_instant.tooltip": "With Haste II, cobblestone breaks at once whenever stone would, as in Bedrock Edition. Without this, Java cobblestone is harder than stone and never breaks instantly."
+}
