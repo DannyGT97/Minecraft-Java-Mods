@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "com.dstsoftware.inventoryfilters.mixin",
+  "package": "com.dannygt97.inventoryfilters.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [],
   "injectors": { "defaultRequire": 1 }

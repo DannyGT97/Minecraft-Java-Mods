@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "com.dstsoftware.hastestone.mixin",
+  "package": "com.dannygt97.hastestone.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": ["BlockStateBaseMixin"],
   "injectors": { "defaultRequire": 1 }

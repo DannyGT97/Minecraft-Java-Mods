@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "com.dstsoftware.inventoryfilters.client.mixin",
+  "package": "com.dannygt97.inventoryfilters.client.mixin",
   "compatibilityLevel": "JAVA_25",
   "client": ["SortButtonMixin"],
   "injectors": { "defaultRequire": 1 }

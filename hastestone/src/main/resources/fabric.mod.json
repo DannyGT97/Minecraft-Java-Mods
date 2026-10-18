@@ -8,8 +8,8 @@
   "license": "CC0-1.0",
   "environment": "*",
   "entrypoints": {
-    "main": ["com.dstsoftware.hastestone.Hastestone"],
-    "modmenu": ["com.dstsoftware.hastestone.client.HastestoneModMenu"]
+    "main": ["com.dannygt97.hastestone.Hastestone"],
+    "modmenu": ["com.dannygt97.hastestone.client.HastestoneModMenu"]
   },
   "mixins": ["hastestone.mixins.json"],
   "depends": {
