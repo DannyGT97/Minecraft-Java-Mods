@@ -8,8 +8,9 @@
   "license": "CC0-1.0",
   "environment": "*",
   "entrypoints": {
-    "main": ["com.dstsoftware.inventoryfilters.InventoryFilters"],
-    "modmenu": ["com.dstsoftware.inventoryfilters.client.InventoryFiltersModMenu"]
+    "main": ["com.dannygt97.inventoryfilters.InventoryFilters"],
+    "client": ["com.dannygt97.inventoryfilters.client.InventoryFiltersClient"],
+    "modmenu": ["com.dannygt97.inventoryfilters.client.InventoryFiltersModMenu"]
   },
   "mixins": [
     "inventoryfilters.mixins.json",

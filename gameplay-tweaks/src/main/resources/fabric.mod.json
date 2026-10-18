@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "gameplaytweaks",
+  "version": "${version}",
+  "name": "Gameplay Tweaks",
+  "description": "Client-side visual options and reach-around block placement.",
+  "authors": ["dannygt97"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.dannygt97.gameplaytweaks.client.GameplayTweaksClient"],
+    "modmenu": ["com.dannygt97.gameplaytweaks.client.GameplayTweaksModMenu"]
+  },
+  "mixins": [
+    { "config": "gameplaytweaks.client.mixins.json", "environment": "client" }
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}

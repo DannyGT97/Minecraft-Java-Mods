@@ -9,8 +9,8 @@
   "license": "CC0-1.0",
   "environment": "*",
   "entrypoints": {
-    "main": ["com.dstsoftware.treechopper.TreeChopper"],
-    "modmenu": ["com.dstsoftware.treechopper.client.TreeChopperModMenu"]
+    "main": ["com.dannygt97.treechopper.TreeChopper"],
+    "modmenu": ["com.dannygt97.treechopper.client.TreeChopperModMenu"]
   },
   "mixins": ["treechopper.mixins.json"],
   "depends": {

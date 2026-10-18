@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "com.dannygt97.gameplaytweaks.client.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": ["FogRendererMixin", "LightmapMixin", "LightmapRenderMixin", "MinecraftMixin"],
+  "injectors": { "defaultRequire": 1 }
+}
