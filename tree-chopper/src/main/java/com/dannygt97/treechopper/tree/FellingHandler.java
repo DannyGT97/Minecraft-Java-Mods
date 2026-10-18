@@ -223,7 +223,8 @@ public class FellingHandler {
 		boolean mangrove = family.equals("mangrove");
 		Deque<BlockPos> queue = new ArrayDeque<>();
 		Predicate<BlockPos> matches = p -> p.getY() >= origin.getY() && level.getBlockState(p).is(BlockTags.LOGS)
-			&& sameWoodFamily(logBlock, level.getBlockState(p).getBlock()) && !PlayerPlacedBlocks.isPlaced(level, p);
+			&& sameWoodFamily(logBlock, level.getBlockState(p).getBlock()) && !PlayerPlacedBlocks.isPlaced(level, p)
+			&& (!mangrove || !isAnotherMangroveTrunkColumn(level, p, origin, logBlock));
 		for (BlockPos seed : logNeighborsOf(origin, acacia, mangrove)) {
 			if (logs.size() >= MAX_LOGS) break;
 			if (matches.test(seed) && logs.add(seed)) queue.add(seed);
@@ -250,6 +251,27 @@ public class FellingHandler {
 			}
 		}
 		return result;
+	}
+
+	// A diagonal mangrove branch can touch the trunk of a second tree. That tree's own column
+	// continues below the cut; the selected tree's elevated branches do not. Keep the other trunk
+	// out of the connected set while still allowing its foliage to overlap the selected canopy.
+	private static boolean isAnotherMangroveTrunkColumn(
+		final ServerLevel level, final BlockPos candidate, final BlockPos origin, final Block logBlock
+	) {
+		if (candidate.getX() == origin.getX() && candidate.getZ() == origin.getZ()) return false;
+		int consecutiveLogs = 0;
+		for (int depth = 1; depth <= 8; depth++) {
+			BlockPos below = candidate.below(depth);
+			if (below.getY() >= origin.getY()) continue;
+			BlockState state = level.getBlockState(below);
+			if (state.is(BlockTags.LOGS) && sameWoodFamily(logBlock, state.getBlock()) && !PlayerPlacedBlocks.isPlaced(level, below)) {
+				if (++consecutiveLogs >= 2) return true;
+			} else {
+				consecutiveLogs = 0;
+			}
+		}
+		return false;
 	}
 
 	// Follow vanilla's leaf-support distance from the selected logs instead of scanning a fixed
