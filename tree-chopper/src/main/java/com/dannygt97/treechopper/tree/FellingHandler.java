@@ -117,24 +117,17 @@ public class FellingHandler {
 		// This is the AFTER event - `pos` is already air by the time we get here, so it can't be
 		// used as a BFS seed itself (it would just fail the "is this block a log" match). Seed
 		// with its neighbors instead; only the rest of the connected tree is ours to break here.
-		// Diagonal adjacency is required here too, not just for leaves - acacia's own trunk
-		// placer angles the branch diagonally, so consecutive trunk logs are frequently only
-		// edge/corner-adjacent rather than sharing a full face; a face-only (6-directional) BFS
-		// stops early partway up a diagonal branch and leaves the rest of that tree standing.
+		// Some trees place branches diagonally. Acacia uses all diagonal neighbors; mangrove can
+		// lean from one level to the next, so include vertical diagonals there while excluding
+		// same-level corner links that can join two nearby trunks.
 		// The `p.getY() >= pos.getY()` guard is what makes this a directional felling instead of
 		// destroying the whole tree regardless of cut height: chopping partway up a thick
 		// multi-log trunk (dark oak/pale oak's 2x2 base) should only take down what's above the
 		// cut, leaving the stump below standing, exactly like chopping a real tree.
 		// Logs the player placed are skipped outright, so a log house or tree house touching the
 		// trunk is never pulled into the fell (nor is anything only reachable through it).
-		boolean diagonalLogs = usesDiagonalLogConnections(logBlock);
 		Set<BlockPos> logs = new HashSet<>();
-		floodFill(
-			serverLevel, logs, neighborsOf(pos, diagonalLogs),
-			p -> p.getY() >= pos.getY() && serverLevel.getBlockState(p).is(BlockTags.LOGS)
-				&& sameWoodFamily(logBlock, serverLevel.getBlockState(p).getBlock()) && !PlayerPlacedBlocks.isPlaced(serverLevel, p),
-			diagonalLogs, MAX_LOGS
-		);
+		floodFillLogs(serverLevel, logs, pos, logBlock);
 
 		// Only a real tree gets felled: it must carry a natural canopy (leaves that vanilla itself
 		// would decay, i.e. not the persistent ones a player places; wart blocks/shroomlight for
@@ -217,6 +210,42 @@ public class FellingHandler {
 						continue;
 					}
 					result.add(pos.offset(dx, dy, dz));
+				}
+			}
+		}
+		return result;
+	}
+
+	private static void floodFillLogs(final ServerLevel level, final Set<BlockPos> logs, final BlockPos origin, final Block logBlock) {
+		Identifier id = BuiltInRegistries.BLOCK.getKey(logBlock);
+		String family = id.getNamespace().equals("minecraft") ? woodFamily(id.getPath()) : "";
+		boolean acacia = family.equals("acacia");
+		boolean mangrove = family.equals("mangrove");
+		Deque<BlockPos> queue = new ArrayDeque<>();
+		Predicate<BlockPos> matches = p -> p.getY() >= origin.getY() && level.getBlockState(p).is(BlockTags.LOGS)
+			&& sameWoodFamily(logBlock, level.getBlockState(p).getBlock()) && !PlayerPlacedBlocks.isPlaced(level, p);
+		for (BlockPos seed : logNeighborsOf(origin, acacia, mangrove)) {
+			if (logs.size() >= MAX_LOGS) break;
+			if (matches.test(seed) && logs.add(seed)) queue.add(seed);
+		}
+		while (!queue.isEmpty() && logs.size() < MAX_LOGS) {
+			for (BlockPos neighbor : logNeighborsOf(queue.remove(), acacia, mangrove)) {
+				if (logs.size() >= MAX_LOGS) break;
+				if (matches.test(neighbor) && logs.add(neighbor)) queue.add(neighbor);
+			}
+		}
+	}
+
+	private static List<BlockPos> logNeighborsOf(final BlockPos pos, final boolean acacia, final boolean mangrove) {
+		if (acacia) return neighborsOf(pos, true);
+		List<BlockPos> result = new ArrayList<>(mangrove ? 18 : 6);
+		for (Direction dir : Direction.values()) result.add(pos.relative(dir));
+		if (mangrove) {
+			for (int dy : new int[] {-1, 1}) {
+				for (int dx = -1; dx <= 1; dx++) {
+					for (int dz = -1; dz <= 1; dz++) {
+						if (dx != 0 || dz != 0) result.add(pos.offset(dx, dy, dz));
+					}
 				}
 			}
 		}
