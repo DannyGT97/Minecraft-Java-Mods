@@ -29,10 +29,11 @@ public final class PlayerPlacedBlocks {
 
 	private PlayerPlacedBlocks() {}
 
-	// Every block the felling logic would otherwise consume: all wood types (logs, wood, stripped
-	// variants, stems, hyphae) and the nether tree canopy blocks.
+	// Every block the felling logic would otherwise consume: all wood types, plain mangrove roots,
+	// tree decorations, and the nether tree canopy blocks.
 	public static boolean shouldTrack(final BlockState state) {
-		return state.is(BlockTags.LOGS) || isNetherCanopy(state);
+		return state.is(BlockTags.LOGS) || state.is(Blocks.MANGROVE_ROOTS) || state.is(Blocks.MANGROVE_PROPAGULE)
+			|| state.is(Blocks.VINE) || state.is(Blocks.PALE_HANGING_MOSS) || isNetherCanopy(state);
 	}
 
 	public static boolean isNetherCanopy(final BlockState state) {

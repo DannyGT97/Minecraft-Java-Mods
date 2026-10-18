@@ -48,6 +48,7 @@ public class FellingHandler {
 	// a lag/performance exploit from one right-click.
 	private static final int MAX_LOGS = 512;
 	private static final int MAX_LEAVES = 1024;
+	private static final int MAX_TREE_DECORATIONS = 1024;
 	private static final int MAX_NETHER_CANOPY = 1024;
 	private static final float[] NETHER_FUNGUS_DROP_CHANCES = {0.05F, 0.0625F, 0.083333336F, 0.1F};
 	private static final RandomSource RANDOM = RandomSource.create();
@@ -126,19 +127,26 @@ public class FellingHandler {
 		// cut, leaving the stump below standing, exactly like chopping a real tree.
 		// Logs the player placed are skipped outright, so a log house or tree house touching the
 		// trunk is never pulled into the fell (nor is anything only reachable through it).
+		boolean diagonalLogs = usesDiagonalLogConnections(logBlock);
 		Set<BlockPos> logs = new HashSet<>();
 		floodFill(
-			serverLevel, logs, neighborsOf(pos, true),
+			serverLevel, logs, neighborsOf(pos, diagonalLogs),
 			p -> p.getY() >= pos.getY() && serverLevel.getBlockState(p).is(BlockTags.LOGS)
 				&& sameWoodFamily(logBlock, serverLevel.getBlockState(p).getBlock()) && !PlayerPlacedBlocks.isPlaced(serverLevel, p),
-			true, MAX_LOGS
+			diagonalLogs, MAX_LOGS
 		);
 
 		// Only a real tree gets felled: it must carry a natural canopy (leaves that vanilla itself
 		// would decay, i.e. not the persistent ones a player places; wart blocks/shroomlight for
 		// the nether). Log cabins from worlds that predate this mod, village houses and bare
 		// pillars have none, so they are left alone even when nothing is recorded for them.
-		Set<BlockPos> canopy = nether ? collectNetherCanopy(serverLevel, pos, logs) : collectLeaves(serverLevel, logs, pos);
+		Set<BlockPos> canopy;
+		if (nether) {
+			canopy = collectNetherCanopy(serverLevel, pos, logs);
+		} else {
+			canopy = collectLeaves(serverLevel, logs, pos);
+			canopy.addAll(collectTreeDecorations(serverLevel, logBlock, pos, logs, canopy));
+		}
 		if (canopy.isEmpty()) {
 			return;
 		}
@@ -167,10 +175,7 @@ public class FellingHandler {
 	}
 
 	// Breadth-first flood fill outward from `seeds`, adding every reachable position matching
-	// `matches` into `found`. `includeDiagonals` scans all 26 neighbors instead of just the 6
-	// face-adjacent ones - needed here since acacia's trunk placer angles its branch diagonally,
-	// so consecutive trunk logs are frequently only edge/corner-adjacent rather than sharing a
-	// full face.
+	// `matches`. `includeDiagonals` scans all 26 neighbors instead of just the 6 face-adjacent ones.
 	private static void floodFill(
 		final ServerLevel level, final Set<BlockPos> found, final Iterable<BlockPos> seeds, final Predicate<BlockPos> matches,
 		final boolean includeDiagonals, final int cap
@@ -218,22 +223,15 @@ public class FellingHandler {
 		return result;
 	}
 
-	// Follows vanilla's own leaf-support chain instead of scanning a fixed radius: every leaves
-	// block already carries a `distance` property (1-7) that vanilla itself maintains as "how far
-	// is this leaf, through a chain of touching leaves, from the nearest log" - the same value it
-	// uses to decide whether an unsupported leaf decays. Seeding from leaves directly touching a
-	// felled log (distance == 1, unambiguous - touching one of our own logs always means exactly
-	// that) and only continuing to a neighbor whose distance is exactly one more than the current
-	// leaf's catches the whole real canopy (including acacia's sparse, barely-touching clusters)
-	// without spilling into a separate, closely-planted tree's leaves - those sit on their own
-	// shorter chain back to their own logs, so their distance values never line up with a
-	// continuation of this tree's chain. A fixed-radius scan can't tell the two apart; this can,
-	// because it's the same topology vanilla itself already computed.
+	// Follow vanilla's leaf-support distance from the selected logs instead of scanning a fixed
+	// radius. The computed distance from this tree may be shorter than a stale leaf distance, so
+	// accept those leaves while rejecting a leaf whose vanilla distance proves another tree's logs
+	// are closer. This also keeps touching canopies from merging merely because their leaves touch.
 	private static Set<BlockPos> collectLeaves(
 		final ServerLevel level, final Set<BlockPos> logs, final BlockPos originPos
 	) {
 		Set<BlockPos> leaves = new HashSet<>();
-		Deque<BlockPos> queue = new ArrayDeque<>();
+		Deque<LeafNode> queue = new ArrayDeque<>();
 
 		List<BlockPos> seeds = new ArrayList<>();
 		for (BlockPos logPos : logs) {
@@ -241,34 +239,24 @@ public class FellingHandler {
 		}
 		seeds.addAll(neighborsOf(originPos, true));
 
-		// Normally the leaves touching a log all carry distance 1. Generated canopies can carry
-		// slightly stale distance values though (vanilla only corrects them on the next leaf
-		// update), so when no touching leaf says 1 fall back to the lowest distance among the
-		// touching ones - still the tree's own innermost layer, never a farther neighbor's.
-		int seedDistance = LeavesBlock.DECAY_DISTANCE;
-		for (BlockPos seed : seeds) {
-			if (seed.getY() >= originPos.getY()) {
-				BlockState state = level.getBlockState(seed);
-				if (isNaturalLeaf(state)) {
-					seedDistance = Math.min(seedDistance, LeavesBlock.getOptionalDistanceAt(state).orElse(LeavesBlock.DECAY_DISTANCE));
-				}
-			}
-		}
 		for (BlockPos seed : seeds) {
 			if (leaves.size() >= MAX_LEAVES || leaves.contains(seed) || seed.getY() < originPos.getY()) {
 				continue;
 			}
 			BlockState state = level.getBlockState(seed);
-			if (isNaturalLeaf(state) && LeavesBlock.getOptionalDistanceAt(state).orElse(-1) == seedDistance) {
+			if (isNaturalLeaf(state) && LeavesBlock.getOptionalDistanceAt(state).orElse(LeavesBlock.DECAY_DISTANCE) >= 1) {
 				leaves.add(seed);
-				queue.add(seed);
+				queue.add(new LeafNode(seed, 1));
 			}
 		}
 
 		while (!queue.isEmpty() && leaves.size() < MAX_LEAVES) {
-			BlockPos current = queue.poll();
-			int currentDistance = LeavesBlock.getOptionalDistanceAt(level.getBlockState(current)).orElse(LeavesBlock.DECAY_DISTANCE);
-			for (BlockPos neighbor : neighborsOf(current, true)) {
+			LeafNode current = queue.poll();
+			int nextTreeDistance = current.treeDistance() + 1;
+			if (nextTreeDistance > LeavesBlock.DECAY_DISTANCE) {
+				continue;
+			}
+			for (BlockPos neighbor : neighborsOf(current.pos(), true)) {
 				if (leaves.size() >= MAX_LEAVES || leaves.contains(neighbor) || neighbor.getY() < originPos.getY()) {
 					continue;
 				}
@@ -277,9 +265,9 @@ public class FellingHandler {
 					continue;
 				}
 				OptionalInt neighborDistance = LeavesBlock.getOptionalDistanceAt(state);
-				if (neighborDistance.isPresent() && neighborDistance.getAsInt() == currentDistance + 1) {
+				if (neighborDistance.isPresent() && neighborDistance.getAsInt() >= nextTreeDistance) {
 					leaves.add(neighbor);
-					queue.add(neighbor);
+					queue.add(new LeafNode(neighbor, nextTreeDistance));
 				}
 			}
 		}
@@ -291,6 +279,42 @@ public class FellingHandler {
 	private static boolean isNaturalLeaf(final BlockState state) {
 		return state.is(BlockTags.LEAVES) && state.hasProperty(LeavesBlock.PERSISTENT) && !state.getValue(LeavesBlock.PERSISTENT);
 	}
+
+	// Collect blocks that hang from a canopy but aren't leaves themselves. Player-placed blocks are
+	// skipped; muddy mangrove roots deliberately don't match the plain-root check.
+	private static Set<BlockPos> collectTreeDecorations(
+		final ServerLevel level, final Block logBlock, final BlockPos origin, final Set<BlockPos> logs, final Set<BlockPos> leaves
+	) {
+		Identifier logId = BuiltInRegistries.BLOCK.getKey(logBlock);
+		boolean mangrove = logId.getNamespace().equals("minecraft") && woodFamily(logId.getPath()).equals("mangrove");
+		Set<BlockPos> decorations = new HashSet<>();
+		List<BlockPos> seeds = new ArrayList<>();
+		seeds.addAll(neighborsOf(origin, true));
+		for (BlockPos log : logs) {
+			seeds.addAll(neighborsOf(log, true));
+		}
+		for (BlockPos leaf : leaves) {
+			seeds.addAll(neighborsOf(leaf, true));
+		}
+		floodFill(
+			level, decorations, seeds,
+			p -> isTreeDecoration(level.getBlockState(p), mangrove) && !PlayerPlacedBlocks.isPlaced(level, p),
+			true, MAX_TREE_DECORATIONS
+		);
+		return decorations;
+	}
+
+	private static boolean isTreeDecoration(final BlockState state, final boolean mangrove) {
+		return state.is(Blocks.VINE) || state.is(Blocks.PALE_HANGING_MOSS)
+			|| (mangrove && (state.is(Blocks.MANGROVE_ROOTS) || state.is(Blocks.MANGROVE_PROPAGULE)));
+	}
+
+	private static boolean usesDiagonalLogConnections(final Block logBlock) {
+		Identifier id = BuiltInRegistries.BLOCK.getKey(logBlock);
+		return id.getNamespace().equals("minecraft") && woodFamily(id.getPath()).equals("acacia");
+	}
+
+	private record LeafNode(BlockPos pos, int treeDistance) {}
 
 	private static boolean sameWoodFamily(final Block first, final Block second) {
 		Identifier firstId = BuiltInRegistries.BLOCK.getKey(first);
