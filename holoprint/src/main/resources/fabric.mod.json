@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "holoprint",
+  "version": "${version}",
+  "name": "Holoprint",
+  "description": "Load, place, move and copy schematics with a free camera, and fill a hologram in as you play. Reads and writes .litematic files.",
+  "authors": ["DannyGT97"],
+  "license": "CC0-1.0",
+  "environment": "client",
+  "mixins": [
+    { "config": "holoprint.client.mixins.json", "environment": "client" }
+  ],
+  "entrypoints": {
+    "client": ["io.github.dannygt97.holoprint.client.HoloprintClient"],
+    "modmenu": ["io.github.dannygt97.holoprint.client.HoloprintModMenu"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
