@@ -313,7 +313,44 @@ public final class Hologram {
 	}
 
 	void verification(Verifier.Result result) {
-		this.verification = result;
+	Verifier.Result old = this.verification;
+	this.verification = result;
+	// The cells whose built state changed (all of them when there was nothing to compare with) are noted, so the cells of the view that hold them are made again.
+	if (old == null || result == null || !old.matches(origin, quarterTurns, mirrored) || old.built == result.built) {
+	builtEpoch++;
+	} else {
+	java.util.BitSet changed = (java.util.BitSet) old.built.clone();
+	changed.xor(result.built);
+	for (int i = changed.nextSetBit(0); i >= 0; i = changed.nextSetBit(i + 1)) {
+	builtChanged(i);
+	}
+	}
+	}
+
+	// --- which cells of the view are out of date because blocks got built or removed ---
+
+	/** How many 16-block cells the box has along each axis, and a number per cell that goes up whenever the built state of one of its blocks changes. */
+	private int stampsX, stampsY, stampsZ;
+	private int[] builtStamps = new int[0];
+	private volatile int builtEpoch;
+
+	/** Called when the built state of the block in cell {@code index} of the box changed. */
+	void builtChanged(int index) {
+	if (builtStamps.length == 0) {
+	return;
+	}
+	int x = index % sizeX, z = (index / sizeX) % sizeZ, y = index / (sizeX * sizeZ);
+	builtStamps[stampKey(x, y, z)]++;
+	}
+
+	/** The number of the 16-block cell holding the block at (x, y, z) of the box. */
+	int stampKey(int x, int y, int z) {
+	return ((y >> 4) * stampsZ + (z >> 4)) * stampsX + (x >> 4);
+	}
+
+	/** Changes whenever the built state of any block of that cell changes (see {@link #stampKey}). */
+	int builtStamp(int key) {
+	return key >= 0 && key < builtStamps.length ? builtStamps[key] + 7919 * builtEpoch : builtEpoch;
 	}
 
 	/** The cells that are already built, as of the last check, or null when there is no check that still applies. */
@@ -624,6 +661,11 @@ public final class Hologram {
 		}
 
 		this.grid = grid;
+		stampsX = (sizeX + 15) >> 4;
+		stampsY = (sizeY + 15) >> 4;
+		stampsZ = (sizeZ + 15) >> 4;
+		builtStamps = new int[stampsX * stampsY * stampsZ];
+		builtEpoch++;
 		this.gridStates = states;
 
 		// The blocks drawn by block entities (chests, signs...), with their saved data, moved into the same box.

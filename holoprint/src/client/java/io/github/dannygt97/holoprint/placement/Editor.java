@@ -43,6 +43,7 @@ public final class Editor {
 
 	public static void init() {
 		EditorKeys.init();
+		io.github.dannygt97.holoprint.ui.HotbarTools.init();
 		ClientTickEvents.END_CLIENT_TICK.register(Editor::tick);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("holoprint", "editor_help"), EditorHud::render);
 	}
@@ -280,6 +281,12 @@ public final class Editor {
 			if (mc.gui.screen() instanceof EditorScreen editor) {
 				editor.toggleMaterials();
 			}
+		}
+		while (EditorKeys.SPEED_DOWN.consumeClick()) {
+			Freecam.changeSpeed(-1);
+		}
+		while (EditorKeys.SPEED_UP.consumeClick()) {
+			Freecam.changeSpeed(1);
 		}
 		while (EditorKeys.MODE.consumeClick()) {
 			cycleMode(mc);

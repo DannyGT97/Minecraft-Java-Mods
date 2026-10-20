@@ -210,10 +210,9 @@ public final class Verifier {
 			}
 			int index = (y * hologram.sizeZ() + z) * hologram.sizeX() + x;
 			boolean built = isBuilt(wanted, state);
-			if (built) {
-				result.built.set(index);
-			} else {
-				result.built.clear(index);
+			if (built != result.built.get(index)) {
+			result.built.set(index, built);
+			hologram.builtChanged(index);
 			}
 			int kind = 0;
 			if (built) {

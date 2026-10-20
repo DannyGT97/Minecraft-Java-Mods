@@ -17,9 +17,10 @@ public final class HoloprintConfig {
 	public static final int DEFAULT_HOLOGRAM_COLOR = 0xFFFFFF;
 	public static final int DEFAULT_SELECTION_COLOR = 0xFFD166;
 	public static final int DEFAULT_FLOW_COLOR = 0x4A4A44;
+	public static final int DEFAULT_OUTLINE_COLOR = 0x33B3E6;
 	public static final int DEFAULT_MAX_PLACEMENTS = 8;
-	public static final int DEFAULT_DRAW_DISTANCE = 160;
-	public static final int DEFAULT_BLOCK_BUDGET = 60_000;
+	public static final int DEFAULT_DRAW_DISTANCE = 256;
+	public static final int DEFAULT_BLOCK_BUDGET = 200_000;
 	public static final int DEFAULT_COPY_LIMIT = 8_000_000;
 	/** Blocks per second while the use button is held (the most is one per game tick). */
 	public static final int DEFAULT_FILL_SPEED = 7;
@@ -54,6 +55,8 @@ public final class HoloprintConfig {
 	public int hologramOpacity = DEFAULT_OPACITY;
 	/** Water and lava show the game's own moving textures; off, they are drawn as still, flat-coloured blocks. */
 	public boolean fluidAnimations = true;
+	/** Draw the hologram from meshes kept in the graphics card (fast), instead of copying every quad each frame. */
+	public boolean retainedMeshes = true;
 	/** Arrows on the water and lava that flows, showing which way it runs. */
 	public boolean showFlowArrows = true;
 	/** Pointing at a chest (or other container) of a hologram lists what is saved inside it. */
@@ -64,6 +67,12 @@ public final class HoloprintConfig {
 	public int selectionColor = DEFAULT_SELECTION_COLOR;
 	/** Colour of the arrows that show which way water and lava flow, as 0xRRGGBB. */
 	public int flowColor = DEFAULT_FLOW_COLOR;
+	/** Colour of the outline drawn around the blocks of a hologram, as 0xRRGGBB. */
+	public int outlineColor = DEFAULT_OUTLINE_COLOR;
+	/** While the free camera is on, the hotbar shows the editor's tools and the number keys use them. */
+	public boolean hotbarTools = true;
+	/** Draw an outline around every block of the holograms, as Litematica does. */
+	public boolean blockOutlines = true;
 	/** How many schematic placements can exist at once. */
 	public int maxPlacements = DEFAULT_MAX_PLACEMENTS;
 	/** How far from the camera hologram blocks are drawn. */
@@ -92,6 +101,12 @@ public final class HoloprintConfig {
 			if (Files.isRegularFile(file)) {
 				HoloprintConfig loaded = GSON.fromJson(Files.readString(file), HoloprintConfig.class);
 				if (loaded != null) {
+					// The limits of the old way of drawing (160 blocks, 60 000 blocks) were set when every block cost time each frame; with the meshes kept in the
+					// graphics card they are far too low, so a file that still has those exact values gets the new ones.
+					if (loaded.drawDistance == 160 && loaded.blockBudget == 60_000) {
+						loaded.drawDistance = DEFAULT_DRAW_DISTANCE;
+						loaded.blockBudget = DEFAULT_BLOCK_BUDGET;
+					}
 					loaded.clamp();
 					return loaded;
 				}
@@ -129,11 +144,15 @@ public final class HoloprintConfig {
 		showExtra = defaults.showExtra;
 		hologramOpacity = defaults.hologramOpacity;
 		fluidAnimations = defaults.fluidAnimations;
+		retainedMeshes = defaults.retainedMeshes;
 		showFlowArrows = defaults.showFlowArrows;
 		showContainerContents = defaults.showContainerContents;
 		hologramColor = defaults.hologramColor;
 		selectionColor = defaults.selectionColor;
 		flowColor = defaults.flowColor;
+		outlineColor = defaults.outlineColor;
+		blockOutlines = defaults.blockOutlines;
+		hotbarTools = defaults.hotbarTools;
 		maxPlacements = defaults.maxPlacements;
 		drawDistance = defaults.drawDistance;
 		blockBudget = defaults.blockBudget;
@@ -147,6 +166,7 @@ public final class HoloprintConfig {
 		hologramColor &= 0xFFFFFF;
 		selectionColor &= 0xFFFFFF;
 		flowColor &= 0xFFFFFF;
+		outlineColor &= 0xFFFFFF;
 		maxPlacements = Math.max(1, Math.min(32, maxPlacements));
 		drawDistance = Math.max(32, Math.min(512, drawDistance));
 		blockBudget = Math.max(10_000, Math.min(250_000, blockBudget));

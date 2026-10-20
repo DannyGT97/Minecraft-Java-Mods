@@ -18,6 +18,9 @@ public final class EditorKeys {
 	public static final KeyMapping MODE = key("mode", InputConstants.KEY_N);
 	/** Switches between turning the camera with the mouse and a free cursor for the buttons. */
 	public static final KeyMapping INTERFACE = key("interface", InputConstants.KEY_TAB);
+	/** Flying speed of the free camera, down and up (the wheel does it too, unless it is picking a tool on the hotbar). */
+	public static final KeyMapping SPEED_DOWN = key("speed_down", InputConstants.KEY_COMMA);
+	public static final KeyMapping SPEED_UP = key("speed_up", InputConstants.KEY_PERIOD);
 	public static final KeyMapping ROTATE = key("rotate", InputConstants.KEY_R);
 	public static final KeyMapping MIRROR = key("mirror", InputConstants.KEY_M);
 	public static final KeyMapping CANCEL = key("cancel", InputConstants.KEY_BACKSPACE);
@@ -57,7 +60,7 @@ public final class EditorKeys {
 
 	/** Throws away presses nobody used, so they do not pile up and fire later in another mode. */
 	static void drainUnused() {
-		for (KeyMapping key : new KeyMapping[] {ROTATE, MIRROR, FORWARD, BACK, LEFT, RIGHT, UP, DOWN, COPY, CUT, PASTE, DELETE, SAVE, BUILD, MATERIALS}) {
+		for (KeyMapping key : new KeyMapping[] {SPEED_DOWN, SPEED_UP, ROTATE, MIRROR, FORWARD, BACK, LEFT, RIGHT, UP, DOWN, COPY, CUT, PASTE, DELETE, SAVE, BUILD, MATERIALS}) {
 			while (key.consumeClick()) {
 				// discarded
 			}

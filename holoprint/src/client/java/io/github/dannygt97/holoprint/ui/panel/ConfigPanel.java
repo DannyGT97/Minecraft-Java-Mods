@@ -164,6 +164,7 @@ public final class ConfigPanel extends EditorPanel {
 				toggle(host, cx, base + 186, cw, "holoprint.config.hide_built", config.hideBuilt, () -> config.hideBuilt = !config.hideBuilt);
 				toggle(host, cx, base + 212, cw, "holoprint.config.show_differences", config.showDifferences, () -> config.showDifferences = !config.showDifferences);
 				toggle(host, cx, base + 238, cw, "holoprint.config.show_extra", config.showExtra, () -> config.showExtra = !config.showExtra);
+				toggle(host, cx, base + 264, cw, "holoprint.config.hotbar_tools", config.hotbarTools, () -> config.hotbarTools = !config.hotbarTools);
 			}
 			case APPEARANCE -> {
 				if (shows(base + 4, 20)) {
@@ -179,6 +180,8 @@ public final class ConfigPanel extends EditorPanel {
 				toggle(host, cx, base + 176, cw, "holoprint.config.fluid_animations", config.fluidAnimations, () -> config.fluidAnimations = !config.fluidAnimations);
 				toggle(host, cx, base + 202, cw, "holoprint.config.flow_arrows", config.showFlowArrows, () -> config.showFlowArrows = !config.showFlowArrows);
 				toggle(host, cx, base + 228, cw, "holoprint.config.container_contents", config.showContainerContents, () -> config.showContainerContents = !config.showContainerContents);
+				toggle(host, cx, base + 254, cw, "holoprint.config.block_outlines", config.blockOutlines, () -> config.blockOutlines = !config.blockOutlines);
+				colorRow(host, cx, base + 282, cw, "holoprint.config.outline_color", () -> config.outlineColor, v -> config.outlineColor = v, HoloprintConfig.DEFAULT_OUTLINE_COLOR);
 			}
 			case CONTROLS -> controls(host, cx, y, cw);
 			case LIMITS -> {
@@ -217,6 +220,7 @@ public final class ConfigPanel extends EditorPanel {
 				config.hideBuilt = defaults.hideBuilt;
 				config.showDifferences = defaults.showDifferences;
 				config.showExtra = defaults.showExtra;
+				config.hotbarTools = defaults.hotbarTools;
 			}
 			case APPEARANCE -> {
 				config.hologramOpacity = defaults.hologramOpacity;
@@ -226,6 +230,8 @@ public final class ConfigPanel extends EditorPanel {
 				config.hologramColor = defaults.hologramColor;
 				config.selectionColor = defaults.selectionColor;
 				config.flowColor = defaults.flowColor;
+				config.outlineColor = defaults.outlineColor;
+				config.blockOutlines = defaults.blockOutlines;
 				config.biomeColors = defaults.biomeColors;
 				config.showBlockEntities = defaults.showBlockEntities;
 			}
@@ -254,8 +260,8 @@ public final class ConfigPanel extends EditorPanel {
 	/** How tall the options of the selected category are all together. */
 	private int contentHeight() {
 		return switch (selected) {
-			case GENERAL -> 264;
-			case APPEARANCE -> 254;
+			case GENERAL -> 290;
+			case APPEARANCE -> 310;
 			case LIMITS -> 146;
 			default -> 0;
 		};

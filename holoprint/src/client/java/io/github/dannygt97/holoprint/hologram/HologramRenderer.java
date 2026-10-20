@@ -38,7 +38,7 @@ import net.minecraft.world.phys.Vec3;
  * in view.
  */
 public final class HologramRenderer {
-	private static final Direction[] DIRECTIONS = Direction.values();
+	static final Direction[] DIRECTIONS = Direction.values();
 	/** The block model whose plain white faces stand in for fluids. */
 	private static final BlockState FLUID_SHAPE = net.minecraft.world.level.block.Blocks.SNOW_BLOCK.defaultBlockState();
 	private static final int WATER_COLOR = 0x3F76E4;
@@ -49,6 +49,8 @@ public final class HologramRenderer {
 	private static volatile Hologram active;
 	/** New cells whose quads are built in one frame, and the memory the cached quads may take. */
 	private static final int MAX_BUILDS_PER_FRAME = 24;
+	/** How many cells whose mesh is only out of date are redone in one frame. */
+	private static final int MAX_REFRESHES_PER_FRAME = 2;
 	private static final long MAX_CACHE_BYTES = 192L * 1024 * 1024;
 	/** A cell with a biome colour is read again from the world this often, so chunks that load later get their colour. */
 	private static final long TINT_REFRESH_MS = 5000L;
@@ -71,7 +73,13 @@ public final class HologramRenderer {
 	private HologramRenderer() {}
 
 	public static void init() {
+		RetainedMeshes.init();
+		// The quads of every cell hold texture coordinates of the atlas as it was, so a resource reload (F3+T, another pack) makes them be made again.
+		net.fabricmc.fabric.api.resource.v1.ResourceLoader.get(net.minecraft.server.packs.PackType.CLIENT_RESOURCES).registerReloadListener(
+			net.minecraft.resources.Identifier.fromNamespaceAndPath("holoprint", "hologram_meshes"),
+			(net.minecraft.server.packs.resources.ResourceManagerReloadListener) manager -> Minecraft.getInstance().execute(HologramRenderer::clearCache));
 		LevelRenderEvents.COLLECT_SUBMITS.register(context -> {
+			RetainedMeshes.clear();
 			HoloprintConfig config = HoloprintConfig.get();
 			double range = config.drawDistance;
 			int budget = config.blockBudget;
@@ -157,11 +165,18 @@ public final class HologramRenderer {
 			// Each cell's quads are worked out once and kept; only a few new cells are built per frame so a big view never stalls.
 			long buildStart = System.nanoTime();
 			int builds = 0;
+			int refreshes = 0;
 			List<Ready> ready = new ArrayList<>(drawn.size());
 			for (Candidate candidate : drawn) {
 				Hologram.Section section = candidate.section();
 				SectionMesh mesh = section.mesh;
-				if ((mesh == null || isStale(mesh, candidate.hologram(), tints != null, config.fluidAnimations, now)) && builds < MAX_BUILDS_PER_FRAME) {
+				// A cell that has no mesh yet is built at once (up to a few dozen a frame); a mesh that is only out of date (a biome colour read again) is
+				// not worth a hitch, so only a couple of those are redone each frame.
+				boolean missing = mesh == null;
+				if ((missing || isStale(mesh, candidate.hologram(), tints != null, config.fluidAnimations, now)) && (missing ? builds < MAX_BUILDS_PER_FRAME : refreshes < MAX_REFRESHES_PER_FRAME)) {
+					if (!missing) {
+						refreshes++;
+					}
 					mesh = buildMesh(candidate.hologram(), section, tints, config.fluidAnimations, now);
 					store(section, mesh);
 					builds++;
@@ -179,11 +194,21 @@ public final class HologramRenderer {
 				quadCount += item.mesh().quads;
 			}
 			lastQuads = quadCount;
+			// The quads stay on the card between frames (RetainedMeshes draws them); only the flow arrows are still copied every frame.
+			boolean retained = config.retainedMeshes;
+			RetainedMeshes.begin(camera, ghostColor, config.hideBuilt, config.blockOutlines ? 0xFF000000 | config.outlineColor : 0);
+			if (retained) {
+			for (Ready item : ready) {
+			RetainedMeshes.add(item.hologram(), item.mesh());
+			}
+			}
 			RenderType type = RenderTypes.entityTranslucent(TextureAtlas.LOCATION_BLOCKS);
 			context.submitNodeCollector().submitCustomGeometry(context.poseStack(), type, (pose, consumer) -> {
-				long started = System.nanoTime();
-				drawQuads(consumer, ready, camera, config, ghostColor);
-				lastDrawMicros = (System.nanoTime() - started) / 1000;
+			if (!retained) {
+			long started = System.nanoTime();
+			drawQuads(consumer, ready, camera, config, ghostColor);
+			lastDrawMicros = (System.nanoTime() - started) / 1000;
+			}
 				int arrowColor = Math.max(0xD8, (ghostColor >>> 24) & 0xFF) << 24 | config.flowColor;
 				for (Ready item : config.showFlowArrows ? ready : List.<Ready>of()) {
 					Hologram hologram = item.hologram();
@@ -399,7 +424,7 @@ public final class HologramRenderer {
 			}
 		}
 		return new SectionMesh(data.vertices.toFloatArray(), data.cull.size(), data.block.toIntArray(), data.cell.toIntArray(), data.cull.toByteArray(), data.normal.toByteArray(),
-			data.rgb.toIntArray(), data.absolute.toBooleanArray(), data.light.toIntArray(), arrows, tinted, tints != null, fluidTextures, origin, now);
+			data.rgb.toIntArray(), data.absolute.toBooleanArray(), data.light.toIntArray(), arrows, tinted, tints != null, fluidTextures, origin, now, hologram.stampKey(section.minX, section.minY, section.minZ));
 	}
 
 	/** The quads of one cell as they are collected. */
@@ -539,7 +564,8 @@ public final class HologramRenderer {
 	private static void store(Hologram.Section section, SectionMesh mesh) {
 		SectionMesh old = section.mesh;
 		if (old != null) {
-			cachedBytes -= old.weight();
+		cachedBytes -= old.weight();
+		RetainedMeshes.release(old);
 		}
 		section.mesh = mesh;
 		cachedBytes += mesh.weight();
@@ -568,7 +594,8 @@ public final class HologramRenderer {
 	private static void drop(Hologram.Section section) {
 		SectionMesh mesh = section.mesh;
 		if (mesh != null) {
-			cachedBytes -= mesh.weight();
+		cachedBytes -= mesh.weight();
+		RetainedMeshes.release(mesh);
 		}
 		section.mesh = null;
 		CACHED.remove(section);
@@ -692,9 +719,14 @@ public final class HologramRenderer {
 		return null;
 	}
 
-	/** Forget cached models, for example after a resource pack reload. */
+	/** How many times the cached models and meshes were forgotten (for the tests). */
+	public static volatile int cacheClears;
+
+	/** Forgets the cached models and meshes: after a resource reload the blocks sit elsewhere in the texture atlas and look different. */
 	public static void clearCache() {
 		PARTS.clear();
+		solidUv = null;
 		forgetMeshes();
+		cacheClears++;
 	}
 }

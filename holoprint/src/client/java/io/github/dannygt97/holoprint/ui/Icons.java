@@ -171,6 +171,9 @@ public final class Icons {
 			"..#####..",
 			"...###...",
 			"....#...."}),
+		Map.entry("Mn", new String[] {
+			"##.##.##",
+			"##.##.##"}),
 		Map.entry("Eye", new String[] {
 			"...#####...",
 			".##.....##.",

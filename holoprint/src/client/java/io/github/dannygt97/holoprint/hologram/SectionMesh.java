@@ -36,9 +36,14 @@ final class SectionMesh {
 	final BlockPos builtOrigin;
 	final long builtAt;
 	long lastUsed;
+	/** The number of the 16-block cell of the box this mesh belongs to, for knowing when its built blocks changed (see Hologram.builtStamp). */
+	final int stampKey;
+	/** What the mesh keeps in the graphics card, once it has been drawn (see RetainedMeshes). */
+	volatile RetainedMeshes.Gpu gpu;
 
 	SectionMesh(float[] vertices, int quads, int[] block, int[] cell, byte[] cull, byte[] normal, int[] rgb, boolean[] absolute, int[] light,
-			List<Hologram.Entry> arrows, boolean tinted, boolean builtWithBiomeColors, boolean fluidTextured, BlockPos builtOrigin, long builtAt) {
+			List<Hologram.Entry> arrows, boolean tinted, boolean builtWithBiomeColors, boolean fluidTextured, BlockPos builtOrigin, long builtAt, int stampKey) {
+			this.stampKey = stampKey;
 		this.vertices = vertices;
 		this.quads = quads;
 		this.block = block;

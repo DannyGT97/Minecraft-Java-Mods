@@ -3,6 +3,7 @@ package io.github.dannygt97.holoprint.mixin;
 import io.github.dannygt97.holoprint.freecam.Freecam;
 import io.github.dannygt97.holoprint.placement.Editor;
 import io.github.dannygt97.holoprint.placement.EasyPlace;
+import io.github.dannygt97.holoprint.ui.HotbarTools;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -15,10 +16,18 @@ import net.minecraft.client.Minecraft;
 // belong to the hologram instead.
 @Mixin(Minecraft.class)
 public abstract class MinecraftMixin {
+	// The number keys pick a tool of the editor instead of a slot of the player (see HotbarTools).
+	@Inject(method = "handleKeybinds", at = @At("HEAD"))
+	private void holoprint$hotbarKeys(final CallbackInfo ci) {
+		HotbarTools.consumeKeys(Minecraft.getInstance());
+	}
+
 	@Inject(method = "startAttack", at = @At("HEAD"), cancellable = true)
 	private void holoprint$startAttack(final CallbackInfoReturnable<Boolean> cir) {
 		if (Freecam.isActive()) {
-			Editor.onPrimaryClick();
+			if (!HotbarTools.click(Minecraft.getInstance())) {
+				Editor.onPrimaryClick();
+			}
 			cir.setReturnValue(false);
 		}
 	}
@@ -33,7 +42,9 @@ public abstract class MinecraftMixin {
 	@Inject(method = "startUseItem", at = @At("HEAD"), cancellable = true)
 	private void holoprint$startUseItem(final CallbackInfo ci) {
 		if (Freecam.isActive()) {
-			Editor.onSecondaryClick();
+			if (!HotbarTools.click(Minecraft.getInstance())) {
+				Editor.onSecondaryClick();
+			}
 			ci.cancel();
 		} else if (EasyPlace.before(Minecraft.getInstance())) {
 			ci.cancel();

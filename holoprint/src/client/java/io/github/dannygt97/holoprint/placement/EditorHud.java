@@ -52,7 +52,7 @@ public final class EditorHud {
 		lines.add(Component.translatable("holoprint.hud.interface", name(EditorKeys.INTERFACE)));
 		lines.add(Component.translatable("holoprint.hud.layers", LayerControl.modeName(), name(EditorKeys.LAYER_MODE), name(EditorKeys.LAYER_UP), name(EditorKeys.LAYER_DOWN)));
 		lines.add(Component.translatable("holoprint.hud.materials", name(EditorKeys.MATERIALS)));
-		lines.add(Component.translatable("holoprint.hud.fly", String.format("%.1f", Freecam.speed())));
+		lines.add(Component.translatable(io.github.dannygt97.holoprint.ui.HotbarTools.enabled() ? "holoprint.hud.fly_tools" : "holoprint.hud.fly", String.format("%.1f", Freecam.speed())));
 		if (HologramRenderer.all().isEmpty()) {
 			lines.add(Component.translatable("holoprint.hud.no_schematic").withStyle(ChatFormatting.YELLOW));
 		} else if (HologramRenderer.isTrimmed()) {
