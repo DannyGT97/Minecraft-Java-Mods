@@ -26,12 +26,19 @@ public final class GameplayTweaksConfigScreen extends SettingsScreen {
 				Component.translatable("gameplaytweaks.config.category.lighting.desc"),
 				List.of(Option.toggle("gameplaytweaks.config.fullbright", GameplayTweaksConfig::isFullbrightEnabled,
 					GameplayTweaksConfig::setFullbrightEnabled, () -> true))
+			),
+			new Category(
+				Component.translatable("gameplaytweaks.config.category.gameplay"),
+				Component.translatable("gameplaytweaks.config.category.gameplay.desc"),
+				List.of(Option.toggle("gameplaytweaks.config.bridging", GameplayTweaksConfig::isBridgingEnabled,
+					GameplayTweaksConfig::setBridgingEnabled, () -> true))
 			)
 		), () -> {
 			GameplayTweaksConfig.setFogDisabled("overworld", false);
 			GameplayTweaksConfig.setFogDisabled("nether", false);
 			GameplayTweaksConfig.setFogDisabled("end", false);
 			GameplayTweaksConfig.setFullbrightEnabled(false);
+			GameplayTweaksConfig.setBridgingEnabled(false);
 		});
 	}
 }

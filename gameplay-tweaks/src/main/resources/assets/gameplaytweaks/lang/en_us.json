@@ -4,8 +4,11 @@
   "gameplaytweaks.config.category.fog.desc": "Disable terrain fog separately in each dimension.",
   "gameplaytweaks.config.category.lighting": "Lighting",
   "gameplaytweaks.config.category.lighting.desc": "Adjust client-side world brightness.",
+  "gameplaytweaks.config.category.gameplay": "Gameplay",
+  "gameplaytweaks.config.category.gameplay.desc": "Optional block placement assistance.",
   "gameplaytweaks.config.fog.overworld": "Overworld fog: %s",
   "gameplaytweaks.config.fog.nether": "Nether fog: %s",
   "gameplaytweaks.config.fog.end": "End fog: %s",
-  "gameplaytweaks.config.fullbright": "Fullbright: %s"
+  "gameplaytweaks.config.fullbright": "Fullbright: %s",
+  "gameplaytweaks.config.bridging": "Bedrock-style bridging: %s"
 }
