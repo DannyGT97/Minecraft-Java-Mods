@@ -114,6 +114,8 @@
   "holoprint.placements.tip_complete_reopened": "Márcala de nuevo cuando termines",
   "holoprint.placements.tip_complete_locked": "Está completa: desmarca «Marcar como completa» para cambiarla",
   "holoprint.placements.tip_complete_row": "Está completa: desmarca «Marcar como completa» para moverla o cambiarla",
+  "holoprint.placements.status_unchecked": "Todo lo comprobado está construido; %s bloques lejos de ti sin comprobar",
+  "holoprint.placements.tip_unchecked": "El juego solo conoce el mundo cerca del jugador. %s bloques de esta colocación están fuera de ese alcance y no puede saber si están construidos. Acércate, o marca «Marcar como completa» si sabes que está hecho.",
   "holoprint.placements.status_complete": "Completa",
   "holoprint.placements.status_reopened": "Reabierta: se dibuja entera para que puedas moverla",
   "holoprint.message.placement_complete": "Holoprint: «%s» está construida. Queda en la lista como completa; desmárcala para volver a editarla.",

@@ -161,6 +161,8 @@ public final class PlacementsPanel extends EditorPanel {
 					// opened again to be moved: it is the one the editor works on
 					HologramRenderer.makeActive(hologram);
 					Editor.activePlacementChanged(Minecraft.getInstance());
+				} else {
+					Editor.activePlacementChanged(Minecraft.getInstance());
 				}
 				host.rebuild();
 			}, DEFAULT_NARRATION);
@@ -193,6 +195,18 @@ public final class PlacementsPanel extends EditorPanel {
 		}
 	}
 
+	/**
+	 * How many blocks of the placement could not be checked because the client does not have that part of the world (it is far from the player, though the free
+	 * camera can look at it), when everything that could be checked is built; 0 otherwise.
+	 */
+	private static long unchecked(Hologram hologram) {
+		var result = hologram.verification();
+		if (hologram.reopened() || result == null || !result.matches(hologram.origin(), hologram.quarterTurns(), hologram.mirrored())) {
+			return 0;
+		}
+		return result.missing == 0 && result.wrongCount == 0 && result.wrongStateCount == 0 && result.placed > 0 ? result.unloaded : 0;
+	}
+
 	/** The name and details of one placement; pressing it makes that placement the one Move works on. */
 	private static final class RowSelect extends Button {
 		private final Hologram hologram;
@@ -204,6 +218,8 @@ public final class PlacementsPanel extends EditorPanel {
 			this.name = name;
 			if (hologram.complete()) {
 				setTooltip(Tooltip.create(Component.translatable("holoprint.placements.tip_complete_row")));
+			} else if (unchecked(hologram) > 0) {
+				setTooltip(Tooltip.create(Component.translatable("holoprint.placements.tip_unchecked", unchecked(hologram))));
 			}
 		}
 
@@ -225,10 +241,15 @@ public final class PlacementsPanel extends EditorPanel {
 				+ hologram.sizeY() + "x" + hologram.sizeZ() + "   " + hologram.quarterTurns() * 90 + "°", getWidth() - 10);
 			graphics.text(font, detail, x + 6, y + 18, 0xFF909090, false);
 			// what state it is in, after the details: finished (green) or opened again (yellow)
-			if (done || hologram.reopened()) {
+			long unchecked = done ? 0 : unchecked(hologram);
+			if (done || hologram.reopened() || unchecked > 0) {
 				int statusX = x + 6 + font.width(detail) + 10;
-				String status = Component.translatable(done ? "holoprint.placements.status_complete" : "holoprint.placements.status_reopened").getString();
-				graphics.text(font, font.plainSubstrByWidth(status, getX() + getWidth() - 4 - statusX), statusX, y + 18, done ? 0xFF55FF55 : 0xFFFFD166, false);
+				String status = (done ? Component.translatable("holoprint.placements.status_complete") : hologram.reopened() ? Component.translatable("holoprint.placements.status_reopened")
+					: Component.translatable("holoprint.placements.status_unchecked", unchecked)).getString();
+				// only when it fits whole: a cut word says nothing (the row is dimmed and its tooltip tells it anyway)
+				if (statusX + font.width(status) <= getX() + getWidth() - 4) {
+					graphics.text(font, status, statusX, y + 18, done ? 0xFF55FF55 : 0xFFFFD166, false);
+				}
 			}
 		}
 	}

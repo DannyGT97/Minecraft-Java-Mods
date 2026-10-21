@@ -1,5 +1,7 @@
 # Holoprint
 
+[Leer en español](README.es.md)
+
 A client-side Fabric mod for Minecraft 26.3 that turns schematics into holograms you can fly around, move, check and build from. Think Litematica, but simpler: a free camera, a hotbar full of tools, and nothing to configure before you start.
 
 Holoprint is client-only. It does not need to be installed on the server.
@@ -16,7 +18,7 @@ Holoprint is client-only. It does not need to be installed on the server.
 - **Assisted placement.** Aim at the hologram and place: the block goes in with the right state and orientation.
 - **Layers.** Look at one layer at a time, and step up and down through the build.
 - **Material list** for every placement.
-- **Several placements at once.** Each one can be hidden, locked or removed on its own.
+- **Several placements at once.** Each one can be hidden, locked or removed on its own. A placement is marked as complete when everything is built (or by hand, with its box in the list): it stops being drawn and stays in the list as a reference; untick it to edit it again.
 - **Selection, copy, paste, delete and save.** Select an area of the world, copy it, paste it as a new hologram, or save it as a schematic.
 - **Build (needs cheats).** Build a whole placement in one go, or move a real area with `/clone`.
 
@@ -37,7 +39,7 @@ In the free camera the hotbar becomes the editor's toolbar. Use the number keys 
 | 7 | Settings | |
 | 9 | | Back |
 
-While a tool is highlighted, the keys that go with it are shown above the hotbar, using the keys you have set in the game's controls. `Ctrl` + wheel (or `,` and `.`) changes the flying speed. The tools can be put back in the old place, a menu opened from the free camera, by turning off the hotbar tools in the settings.
+While a tool is highlighted, the keys that go with it are shown above the hotbar, using the keys you have set in the game's controls. A tool that cannot be used (Move and Build with no active placement) is skipped by the wheel and the keys, and the legend says why in yellow. `Ctrl` + wheel (or `,` and `.`) changes the flying speed. The tools can be put back in the old place, a menu opened from the free camera, by turning off the hotbar tools in the settings.
 
 ## Layers
 
@@ -64,6 +66,8 @@ As you build, what already matches the hologram disappears and what is left stay
 
 ![A half-built hut: matching blocks are hidden, two wrong blocks are outlined in red](docs/images/09-verify.jpg)
 
+The game only knows the world near the player, and the free camera can look much farther. What is out of that reach cannot be checked: the placement's row says how many blocks are unchecked and, if you know it is done, its "Mark as complete" box finishes it.
+
 ## Controls
 
 All of them are normal key bindings, so you can change them in the game's controls screen.
@@ -75,12 +79,15 @@ All of them are normal key bindings, so you can change them in the game's contro
 | Click | Use the tool; with Move, pin or pick up the hologram |
 | `R` / `Z` | Rotate / mirror |
 | Arrow keys, `Page Up` / `Page Down` | Nudge the hologram one block |
-| `N` | Change the editing mode |
+| `N` | Change the editing mode (Move, Select, Copy, Delete, then Build) |
 | `B` | Build the placement you point at (needs cheats) |
 | `J` | Material list |
 | Numpad `+` / `-` / `*` | Layer up / down / all or one |
 | `Ctrl` + `C` / `X` / `V` | Copy / cut / paste |
 | `Backspace` | Cancel |
+| `Esc` | Cancel what you are doing (a move, a selection, a copy in hand); with nothing to cancel it opens the pause menu |
+
+With assisted placement on and a block in your hand, clicking a chest, a table or a sign of a hologram does not open it (as in Litematica): use it with an empty hand, or turn assisted placement off.
 
 If you also have Litematica installed, some of its default keys (for example the numpad `-`) are used by both mods; change one of them in the controls screen.
 

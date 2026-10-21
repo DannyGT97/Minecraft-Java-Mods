@@ -93,7 +93,8 @@ public final class HologramRenderer {
 
 			List<Candidate> candidates = new ArrayList<>();
 			for (Hologram hologram : ALL) {
-				if (!hologram.visible()) {
+				// A finished placement is not drawn at all: it is a reference now (what the client cannot see of the world must not keep its outline).
+				if (!hologram.visible() || hologram.complete()) {
 					continue;
 				}
 				BlockPos origin = hologram.origin();
@@ -134,7 +135,7 @@ public final class HologramRenderer {
 					if (left <= 0) {
 						break;
 					}
-					if (hologram.visible() && hologram.showEntities() && hologram.hasEntities()) {
+					if (hologram.visible() && !hologram.complete() && hologram.showEntities() && hologram.hasEntities()) {
 						left -= GhostEntities.render(mc, hologram, hologram.ghosts(mc), camera, range, config.hologramArgb(), context.levelState().cameraRenderState,
 							context.poseStack(), context.submitNodeCollector(), left);
 					}
@@ -148,7 +149,7 @@ public final class HologramRenderer {
 					if (left <= 0) {
 						break;
 					}
-					if (hologram.visible() && hologram.hasBlockEntities()) {
+					if (hologram.visible() && !hologram.complete() && hologram.hasBlockEntities()) {
 						left -= GhostBlockEntities.render(mc, hologram, hologram.blockGhosts(mc), camera, range, context.levelState().cameraRenderState,
 							context.poseStack(), context.submitNodeCollector(), config.hideBuilt ? hologram.builtCells() : null, config.hologramArgb(), left);
 					}

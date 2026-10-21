@@ -239,7 +239,10 @@ public final class HologramBuilder {
 				}
 			}
 			busy = false;
-			mc.execute(() -> Editor.message(mc, Component.translatable("holoprint.message.built", placed[0])));
+			mc.execute(() -> {
+				hologram.markBuilt();
+				Editor.message(mc, Component.translatable("holoprint.message.built", placed[0]));
+			});
 		};
 		server.execute(step[0]);
 		return true;

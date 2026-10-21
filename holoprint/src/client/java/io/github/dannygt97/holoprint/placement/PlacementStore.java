@@ -141,6 +141,18 @@ public final class PlacementStore {
 			entry.addProperty("locked", hologram.locked());
 			entry.addProperty("complete", hologram.markedComplete());
 			entry.addProperty("reopened", hologram.reopened());
+			Object[] built = hologram.builtState();
+			if (built != null) {
+				// where it stood when a Build of it ended: what the client cannot see of the world is still taken as built after a restart
+				JsonObject at = new JsonObject();
+				BlockPos b = (BlockPos) built[0];
+				at.addProperty("x", b.getX());
+				at.addProperty("y", b.getY());
+				at.addProperty("z", b.getZ());
+				at.addProperty("turns", (int) built[1]);
+				at.addProperty("mirrored", (boolean) built[2]);
+				entry.add("builtAt", at);
+			}
 			entry.addProperty("showEntities", hologram.showEntities());
 			array.add(entry);
 		}
@@ -258,6 +270,9 @@ public final class PlacementStore {
 						result.locked(bool(entry, "locked", false));
 						result.markedComplete(bool(entry, "complete", false));
 						result.reopened(bool(entry, "reopened", false));
+						if (entry.get("builtAt") instanceof JsonObject at) {
+							result.restoreBuilt(new BlockPos(integer(at, "x", 0), integer(at, "y", 0), integer(at, "z", 0)), integer(at, "turns", 0), bool(at, "mirrored", false));
+						}
 						result.showEntities(bool(entry, "showEntities", true));
 						restored.set(index, result);
 					} else if (result == null) {

@@ -430,7 +430,16 @@ public final class Verifier {
 				count[0] += items;
 			}
 			if (!job.lastLoaded) {
-				job.unloaded++;
+				if (hologram.assumedBuilt()) {
+					// the Build wrote it; the client just does not have that part of the world (the free camera sees farther than the player's chunks)
+					job.built.set(i);
+					job.placed += items;
+					if (count != null) {
+						count[1] += items;
+					}
+				} else {
+					job.unloaded++;
+				}
 				continue;
 			}
 			BlockState world = mc.level.getBlockState(pos);

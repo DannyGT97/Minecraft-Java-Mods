@@ -86,6 +86,31 @@ public final class Hologram {
 	private boolean markedComplete;
 	/** A finished placement the user opened again to move it: it is drawn whole, built blocks included, and is not taken as complete until it is marked again. */
 	private boolean reopened;
+	/** Where it stood and how it was turned when the Build of it ended, or null: what the client has not got (chunks out of reach of the player, which the free camera can look at) is taken as built. */
+	private volatile Object[] builtBy;
+
+	/** Called when a Build of this placement ended: the blocks it wrote are in the world even where the client has not got them yet. */
+	public void markBuilt() {
+		builtBy = new Object[] {origin, quarterTurns, mirrored};
+		builtEpoch++;
+	}
+
+	/** Where and how turned the placement was when a Build of it ended, or null (saved with the placement). */
+	public Object[] builtState() {
+		return builtBy;
+	}
+
+	/** Puts back what {@link #builtState} gave, when the placements are restored. */
+	public void restoreBuilt(BlockPos at, int turns, boolean mirror) {
+		builtBy = new Object[] {at, turns & 3, mirror};
+	}
+
+	/** True while the placement is where it was when it was built (moving or turning it, or opening it again, takes the assumption back). */
+	public boolean assumedBuilt() {
+		Object[] by = builtBy;
+		return by != null && !reopened && by[0].equals(origin) && (int) by[1] == quarterTurns && (boolean) by[2] == mirrored;
+	}
+
 	/** The editor is carrying it right now (a move not yet confirmed): where it is does not count yet. */
 	private volatile boolean moving;
 	private int sizeX, sizeY, sizeZ;
@@ -410,6 +435,8 @@ public final class Hologram {
 		} else {
 			markedComplete = true;
 			reopened(false);
+			// a finished placement is not the one the editor works on
+			HologramRenderer.deselect(this);
 		}
 	}
 

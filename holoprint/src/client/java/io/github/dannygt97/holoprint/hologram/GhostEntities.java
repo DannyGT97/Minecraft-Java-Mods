@@ -26,6 +26,8 @@ import net.minecraft.world.phys.Vec3;
 public final class GhostEntities {
 	/** While a hologram entity is being drawn: the ARGB it is drawn with (opacity and tint of the hologram); 0 otherwise. */
 	public static volatile int ghostColor;
+	/** While the vertices of a hologram painting are written (later in the frame): the ARGB it is drawn with; 0 otherwise. */
+	public static volatile int paintingColor;
 	/** The most entities drawn in one frame, nearest first is not needed at this size. */
 	private static final int MAX_PER_FRAME = 160;
 
