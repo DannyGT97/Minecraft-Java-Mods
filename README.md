@@ -55,13 +55,11 @@ When an axe breaks a log from a natural tree, the mod fells the connected trunk 
 
 ### [Gameplay Tweaks](gameplay-tweaks/README.md)
 
-Provides visual options and gameplay convenience features for the client.
+Provides visual options for the client.
 
 - **Fog:** disable fog separately in the Overworld, Nether, and End.
 - **Fullbright:** increase image brightness.
-- **Bedrock-style bridging:** helps place blocks in front of the player while building at an edge, without sneaking.
-- **Type:** client-side. Placement remains subject to the world's and server's rules and permissions.
-- **Online play:** follow the warning above for bridging and respect the server's rules.
+- **Type:** client-side visual options.
 
 ## Requirements and installation
 
@@ -133,13 +131,11 @@ Al romper con un hacha un tronco de un árbol natural, corta el resto del tronco
 
 ### [Gameplay Tweaks](gameplay-tweaks/README.md)
 
-Ofrece ajustes visuales y funciones de comodidad para el cliente.
+Ofrece ajustes visuales para el cliente.
 
 - **Niebla:** permite desactivarla por separado en el Overworld, el Nether y el End.
 - **Fullbright:** aumenta el brillo de la imagen.
-- **Bridging al estilo Bedrock:** ayuda a colocar bloques delante del jugador al construir sobre un borde, sin tener que agacharse.
-- **Tipo:** solo cliente. La colocación sigue sujeta a las reglas y permisos del mundo o servidor.
-- **Juego en línea:** para bridging, sigue el aviso anterior y respeta las reglas del servidor.
+- **Tipo:** ajustes visuales solo del cliente.
 
 ## Requisitos e instalación
 

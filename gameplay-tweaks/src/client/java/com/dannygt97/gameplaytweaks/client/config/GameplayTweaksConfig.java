@@ -14,7 +14,6 @@ public final class GameplayTweaksConfig {
 	private static final String NETHER_FOG = "fog.nether";
 	private static final String END_FOG = "fog.end";
 	private static final String FULLBRIGHT = "fullbright";
-	private static final String BRIDGING = "bridging";
 	private static final Properties VALUES = new Properties();
 	private static final Path CONFIG_DIR = FabricLoader.getInstance().getConfigDir();
 	private static final Path FILE = CONFIG_DIR.resolve("gameplaytweaks.properties");
@@ -28,11 +27,11 @@ public final class GameplayTweaksConfig {
 		try {
 			Path source = Files.exists(FILE) ? FILE : LEGACY_FILE;
 			if (Files.exists(source)) try (InputStream in = Files.newInputStream(source)) { VALUES.load(in); }
+			VALUES.remove("bridging");
 			VALUES.putIfAbsent(OVERWORLD_FOG, "false");
 			VALUES.putIfAbsent(NETHER_FOG, "false");
 			VALUES.putIfAbsent(END_FOG, "false");
 			VALUES.putIfAbsent(FULLBRIGHT, "false");
-			VALUES.putIfAbsent(BRIDGING, "false");
 			loaded = true;
 			save();
 		} catch (IOException e) {
@@ -61,9 +60,6 @@ public final class GameplayTweaksConfig {
 
 	public static boolean isFullbrightEnabled() { return get(FULLBRIGHT); }
 	public static void setFullbrightEnabled(boolean value) { set(FULLBRIGHT, value); }
-	public static boolean isBridgingEnabled() { return get(BRIDGING); }
-	public static void setBridgingEnabled(boolean value) { set(BRIDGING, value); }
-
 	private static synchronized boolean get(String key) {
 		ensureLoaded();
 		return !key.isEmpty() && Boolean.parseBoolean(VALUES.getProperty(key, "false"));
