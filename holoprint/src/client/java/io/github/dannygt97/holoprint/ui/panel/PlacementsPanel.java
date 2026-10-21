@@ -81,6 +81,9 @@ public final class PlacementsPanel extends EditorPanel {
 			boolean done = hologram.complete();
 			host.add(new RowSelect(x + PAD, rowY, doneX - 4 - (x + PAD), ROW_HEIGHT - 3, hologram, nameOf(hologram, index), () -> {
 				if (hologram.complete()) {
+					// a finished placement cannot be worked on, but it can be picked to see where it is: gold box and name in the world
+					HologramRenderer.toggleHighlight(hologram);
+					host.rebuild();
 					return;
 				}
 				HologramRenderer.makeActive(hologram);
@@ -233,7 +236,7 @@ public final class PlacementsPanel extends EditorPanel {
 
 		@Override
 		protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-			boolean current = hologram == HologramRenderer.active();
+			boolean current = hologram == HologramRenderer.active() || hologram == HologramRenderer.highlighted();
 			int x = getX();
 			int y = getY();
 			graphics.fill(x, y, x + getWidth(), y + getHeight(), isHoveredOrFocused() ? 0x66FFFFFF : 0x55000000);

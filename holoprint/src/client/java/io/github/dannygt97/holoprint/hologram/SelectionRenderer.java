@@ -63,13 +63,14 @@ private static void finishedPlacements(net.fabricmc.fabric.api.client.rendering.
 		}
 		net.minecraft.core.BlockPos o = hologram.origin();
 		AABB box = new AABB(o.getX(), o.getY(), o.getZ(), o.getX() + hologram.sizeX(), o.getY() + hologram.sizeY(), o.getZ() + hologram.sizeZ()).inflate(0.03);
-		drawBox(context, box, FINISHED_COLOR);
+		boolean picked = hologram == HologramRenderer.highlighted();
+		drawBox(context, box, picked ? ACTIVE_COLOR : FINISHED_COLOR);
 		double cx = (box.minX + box.maxX) / 2.0 - cam.x, cy = box.maxY + 0.7 - cam.y, cz = (box.minZ + box.maxZ) / 2.0 - cam.z;
 		double distance = Math.sqrt(cx * cx + cy * cy + cz * cz);
 		float scale = (float) Math.max(1.6, Math.min(12.0, distance / 10.0));
 		int index = HologramRenderer.all().indexOf(hologram);
 		net.minecraft.network.chat.Component name = net.minecraft.network.chat.Component.literal(io.github.dannygt97.holoprint.ui.panel.PlacementsPanel.nameOf(hologram, Math.max(0, index)))
-			.withStyle(net.minecraft.ChatFormatting.GREEN);
+			.withStyle(picked ? net.minecraft.ChatFormatting.GOLD : net.minecraft.ChatFormatting.GREEN);
 		com.mojang.blaze3d.vertex.PoseStack pose = context.poseStack();
 		pose.pushPose();
 		pose.translate(cx, cy, cz);

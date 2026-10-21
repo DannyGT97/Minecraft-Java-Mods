@@ -667,6 +667,18 @@ public final class HologramRenderer {
 		active = hologram;
 	}
 
+	/** A finished placement the user picked in the list to see where it is: it gets the gold box and the big name, though it is not the one Move works on. */
+	private static volatile Hologram highlighted;
+
+	public static Hologram highlighted() {
+		return highlighted;
+	}
+
+	/** Highlights {@code hologram}, or stops highlighting it when it already is. */
+	public static void toggleHighlight(Hologram hologram) {
+		highlighted = highlighted == hologram ? null : hologram;
+	}
+
 	/** Makes an existing placement the one the Move mode works on. */
 	public static void makeActive(Hologram hologram) {
 		if (ALL.contains(hologram) && !hologram.complete()) {
@@ -700,6 +712,9 @@ public final class HologramRenderer {
 	}
 
 	public static void remove(Hologram hologram) {
+		if (highlighted == hologram) {
+			highlighted = null;
+		}
 		ALL.remove(hologram);
 		forget(hologram);
 		if (active == hologram) {

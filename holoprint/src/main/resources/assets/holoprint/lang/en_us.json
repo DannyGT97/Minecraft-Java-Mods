@@ -114,7 +114,7 @@
   "holoprint.placements.complete_short": "Complete",
   "holoprint.placements.tip_complete_reopened": "Tick it again when you are done",
   "holoprint.placements.tip_complete_locked": "It is complete: untick \"Mark as complete\" to change it",
-  "holoprint.placements.tip_complete_row": "It is complete: untick \"Mark as complete\" to move or change it",
+  "holoprint.placements.tip_complete_row": "It is complete. Click it to see where it is (gold box and name in the world); untick \"Mark as complete\" to move or change it.",
   "holoprint.placements.status_unchecked": "Everything checked is built; %s blocks far from you are unchecked",
   "holoprint.placements.tip_unchecked": "The game only knows the world near the player. %s blocks of this placement are out of that reach, so it cannot tell if they are built. Go closer, or tick \"Mark as complete\" if you know it is done.",
   "holoprint.placements.status_outside": "%s blocks are outside the height of the world",
