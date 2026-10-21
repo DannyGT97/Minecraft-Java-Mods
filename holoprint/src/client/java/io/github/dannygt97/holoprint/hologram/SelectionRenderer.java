@@ -30,6 +30,7 @@ public final class SelectionRenderer {
 				drawBox(context, new AABB(cell).inflate(0.002), io.github.dannygt97.holoprint.placement.EasyPlace.targetBlocked() ? 0xFF9A9A9A : 0xFFFFD166);
 			}
 			activePlacement(context);
+			finishedPlacements(context);
 			differences(context);
 			if (!Editor.isActive() || Editor.mode() != EditorMode.SELECT) {
 				return;
@@ -43,6 +44,40 @@ public final class SelectionRenderer {
 			drawBox(context, box, Selection.isComplete() ? 0xFF000000 | rgb : 0xFF000000 | lighten(rgb));
 		});
 	}
+
+/** The colour of the box around a finished placement: a soft green, so that it is a mark and not a thing to work on. */
+private static final int FINISHED_COLOR = 0x9955FF55;
+
+/**
+ * In the editor, a finished placement is not drawn (it is built), but a soft green box and its name above it say where it stands, however far it is. The
+ * name keeps a readable size from far away.
+ */
+private static void finishedPlacements(net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext context) {
+	if (!Editor.isActive() || !HoloprintConfig.get().showHolograms) {
+		return;
+	}
+	Vec3 cam = context.levelState().cameraRenderState.pos;
+	for (Hologram hologram : HologramRenderer.all()) {
+		if (!hologram.visible() || !hologram.complete() || hologram.sizeX() == 0) {
+			continue;
+		}
+		net.minecraft.core.BlockPos o = hologram.origin();
+		AABB box = new AABB(o.getX(), o.getY(), o.getZ(), o.getX() + hologram.sizeX(), o.getY() + hologram.sizeY(), o.getZ() + hologram.sizeZ()).inflate(0.03);
+		drawBox(context, box, FINISHED_COLOR);
+		double cx = (box.minX + box.maxX) / 2.0 - cam.x, cy = box.maxY + 0.7 - cam.y, cz = (box.minZ + box.maxZ) / 2.0 - cam.z;
+		double distance = Math.sqrt(cx * cx + cy * cy + cz * cz);
+		float scale = (float) Math.max(1.6, Math.min(12.0, distance / 10.0));
+		int index = HologramRenderer.all().indexOf(hologram);
+		net.minecraft.network.chat.Component name = net.minecraft.network.chat.Component.literal(io.github.dannygt97.holoprint.ui.panel.PlacementsPanel.nameOf(hologram, Math.max(0, index)))
+			.withStyle(net.minecraft.ChatFormatting.GREEN);
+		com.mojang.blaze3d.vertex.PoseStack pose = context.poseStack();
+		pose.pushPose();
+		pose.translate(cx, cy, cz);
+		pose.scale(scale, scale, scale);
+		context.submitNodeCollector().submitNameTag(pose, Vec3.ZERO, 0, name, false, net.minecraft.util.LightCoordsUtil.FULL_BRIGHT, context.levelState().cameraRenderState);
+		pose.popPose();
+	}
+}
 
 /** The colour of the box around the placement the editor works on. */
 private static final int ACTIVE_COLOR = 0xFFFFD166;
