@@ -189,6 +189,16 @@ public final class Verifier {
 		FORCED.put(hologram, (mc.level == null ? 0 : mc.level.getGameTime()) + 100);
 	}
 
+	/** How far (percent) the check that is going on for {@code hologram} has got, for the window that waits for it. */
+	public static int progress(Hologram hologram) {
+		Job job = JOBS.get(hologram);
+		if (job == null) {
+			return 0;
+		}
+		long length = job.cells == null ? hologram.gridLength() : job.cells.length;
+		return job.finished ? 100 : (int) Math.min(99, job.cursor * 100L / Math.max(1, length));
+	}
+
 	/** Forgets the last result of a hologram, so the next check starts at once. */
 	public static void restart(Hologram hologram) {
 		JOBS.remove(hologram);
@@ -363,7 +373,13 @@ public final class Verifier {
 			return;
 		}
 		boolean withExtra = HoloprintConfig.get().showExtra;
-		int budget = BUDGET;
+		// A hologram that has no result at all yet (the material list is waiting for it) is looked at four times as fast: nobody sees a frame lost to it,
+		// but everybody sees the wait.
+		boolean cold = false;
+		for (Hologram hologram : all) {
+			cold |= wants(hologram, now) && hologram.verification() == null;
+		}
+		int budget = cold ? BUDGET * 4 : BUDGET;
 		for (int n = 0; n < all.size() && budget > 0; n++) {
 			Hologram hologram = all.get((rotation + n) % all.size());
 			if (!wants(hologram, now)) {
@@ -371,7 +387,9 @@ public final class Verifier {
 			}
 			Job job = JOBS.get(hologram);
 			Long changedAt = DIRTY.get(hologram);
-			boolean dirty = changedAt != null && now - changedAt >= DIRTY_DELAY && (job == null || job.finished || job.startedAt <= changedAt);
+			// A pass that is going on is never thrown away for a change (a build with observers or pistons in it changes something every few ticks, and the pass
+			// would start over each time and never end): it finishes, and then the change is looked at in a pass of its own.
+			boolean dirty = changedAt != null && now - changedAt >= DIRTY_DELAY && (job == null || job.finished);
 			if (!dirty && job != null && job.finished && now - job.finishedAt < RESCAN_TICKS && job.sameAs(hologram, withExtra)) {
 				continue;
 			}

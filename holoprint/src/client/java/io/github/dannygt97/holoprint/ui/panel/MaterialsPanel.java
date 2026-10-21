@@ -137,7 +137,8 @@ public final class MaterialsPanel extends EditorPanel {
 		boolean fresh = result != null && result.matches(hologram.origin(), hologram.quarterTurns(), hologram.mirrored());
 		text(graphics, font().plainSubstrByWidth(hologram.displayName(), WIDTH - 2 * PAD), x + PAD, y, GOLD);
 		if (!fresh) {
-			text(graphics, Component.translatable("holoprint.materials.checking"), x + PAD, y + 14, MUTED);
+			text(graphics, Component.translatable("holoprint.materials.checking", Verifier.progress(hologram)), x + PAD, y + 14, MUTED);
+			text(graphics, Component.translatable("holoprint.materials.checking_big"), x + PAD, y + 26, MUTED);
 			return;
 		}
 		long percent = result.needed == 0 ? 100 : result.placed * 100 / result.needed;
