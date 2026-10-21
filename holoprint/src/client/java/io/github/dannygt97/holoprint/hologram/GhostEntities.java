@@ -118,6 +118,14 @@ public final class GhostEntities {
 				if (state instanceof net.minecraft.client.renderer.entity.state.LivingEntityRenderState living) {
 					living.isInvisible = true;
 					living.isInvisibleToPlayer = false;
+					if (living instanceof net.minecraft.client.renderer.entity.state.ArmedEntityRenderState armed) {
+						fade(armed.rightHandItemState, color);
+						fade(armed.leftHandItemState, color);
+					}
+				} else if (state instanceof net.minecraft.client.renderer.entity.state.ItemClusterRenderState dropped) {
+					fade(dropped.item, color);
+				} else if (state instanceof net.minecraft.client.renderer.entity.state.ItemFrameRenderState frame) {
+					fade(frame.item, color);
 				}
 				ghostColor = color;
 				try {
@@ -131,6 +139,55 @@ public final class GhostEntities {
 			}
 		}
 		return drawn;
+	}
+
+	/**
+	 * Makes an item that is about to be drawn translucent like the rest of the hologram: its quads move to the translucent item
+	 * sheet and the item's tint takes the hologram's opacity (and, where the item has no tint of its own, the hologram's colour).
+	 * The item state is rebuilt by every extraction, so nothing has to be put back.
+	 */
+	private static void fade(net.minecraft.client.renderer.item.ItemStackRenderState item, int argb) {
+		if (item == null || item.isEmpty()) {
+			return;
+		}
+		var accessor = (io.github.dannygt97.holoprint.mixin.ItemStackRenderStateAccessor) item;
+		var layers = accessor.holoprint$layers();
+		int count = accessor.holoprint$layerCount();
+		int alpha = argb & 0xFF000000;
+		for (int i = 0; i < count && i < layers.length; i++) {
+			var layer = layers[i];
+			var quads = ((io.github.dannygt97.holoprint.mixin.LayerRenderStateAccessor) layer).holoprint$quads();
+			if (quads == null || quads.isEmpty()) {
+				continue;
+			}
+			var tints = layer.tintLayers();
+			// the tint every quad of the item that has none of its own is given: one more than the highest the item uses
+			int own = 0;
+			for (var quad : quads.all()) {
+				own = Math.max(own, quad.materialInfo().tintIndex() + 1);
+			}
+			while (tints.size() < own) {
+				tints.add(-1);
+			}
+			for (int t = 0; t < own; t++) {
+				tints.set(t, alpha | (tints.getInt(t) & 0xFFFFFF));
+			}
+			tints.add(argb);
+			var faded = new ArrayList<net.minecraft.client.resources.model.geometry.BakedQuad>(quads.all().size());
+			for (var quad : quads.all()) {
+				var info = quad.materialInfo();
+				boolean blocks = info.sprite().atlasLocation().equals(net.minecraft.client.renderer.texture.TextureAtlas.LOCATION_BLOCKS);
+				var material = new net.minecraft.client.resources.model.geometry.BakedQuad.MaterialInfo(info.sprite(),
+					net.minecraft.client.renderer.chunk.ChunkSectionLayer.TRANSLUCENT,
+					blocks ? net.minecraft.client.renderer.Sheets.translucentBlockItemSheet() : net.minecraft.client.renderer.Sheets.translucentItemSheet(),
+					blocks ? net.minecraft.client.renderer.Sheets.translucentBlockItemGlintSheet() : net.minecraft.client.renderer.Sheets.translucentItemGlintSheet(),
+					blocks ? net.minecraft.client.renderer.Sheets.translucentBlockItemGlintSpecialSheet() : net.minecraft.client.renderer.Sheets.translucentItemGlintSpecialSheet(),
+					info.isTinted() ? info.tintIndex() : own, info.shadeDirectionOverride(), info.lightEmission());
+				faded.add(new net.minecraft.client.resources.model.geometry.BakedQuad(quad.position0(), quad.position1(), quad.position2(), quad.position3(),
+					quad.packedUV0(), quad.packedUV1(), quad.packedUV2(), quad.packedUV3(), quad.direction(), material));
+			}
+			layer.setQuads(net.minecraft.client.resources.model.geometry.ItemQuads.split(faded));
+		}
 	}
 
 	static int budget() {

@@ -71,6 +71,8 @@ public final class HoloprintConfig {
 	public int outlineColor = DEFAULT_OUTLINE_COLOR;
 	/** While the free camera is on, the hotbar shows the editor's tools and the number keys use them. */
 	public boolean hotbarTools = true;
+	/** Which defaults of the editor's keys have already been moved over in the player's saved controls (see EditorKeys.migrateOldDefaults). */
+	public int keyDefaults;
 	/** Draw an outline around every block of the holograms, as Litematica does. */
 	public boolean blockOutlines = true;
 	/** How many schematic placements can exist at once. */

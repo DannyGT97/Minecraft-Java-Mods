@@ -24,6 +24,14 @@ interface EditorTool {
 	/** The cancel key. */
 	void cancel(Minecraft mc);
 
+	/**
+	 * Escape: cancels what is being done (a move not yet confirmed, a selection being made, a copy being carried) and returns true, or returns false when there
+	 * is nothing to cancel, so that Escape does what it always does (the pause menu).
+	 */
+	default boolean escape(Minecraft mc) {
+		return false;
+	}
+
 	/** Help lines for the corner of the screen, after the title. */
 	List<Component> legend();
 }

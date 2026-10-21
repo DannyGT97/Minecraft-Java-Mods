@@ -60,6 +60,9 @@ final class MoveTool implements EditorTool {
 		if (state == State.FOLLOW && carried != null && restorable && savedOrigin != null) {
 			carried.setTransform(savedOrigin, savedTurns, savedMirror);
 		}
+		if (carried != null) {
+			carried.moving(false);
+		}
 		carried = null;
 		restorable = false;
 	}
@@ -84,8 +87,12 @@ final class MoveTool implements EditorTool {
 		if (state == State.FOLLOW) {
 			// It is being carried: put it down where it is. This left click is what confirms the move.
 			state = State.PINNED;
+			if (carried != null) {
+				carried.moving(false);
+			}
 			carried = null;
 			restorable = false;
+			io.github.dannygt97.holoprint.ui.HotbarTools.released(true);
 			return;
 		}
 		if (ray == null) {
@@ -95,7 +102,8 @@ final class MoveTool implements EditorTool {
 		// placement was used last.
 		Hologram under = HologramRenderer.pick(Freecam.eyePosition(), ray, PICK_DISTANCE, null);
 		if (under == null) {
-			Editor.message(mc, Component.translatable("holoprint.message.click_a_hologram"));
+			boolean finished = HologramRenderer.pickComplete(Freecam.eyePosition(), ray, PICK_DISTANCE) != null;
+			Editor.message(mc, Component.translatable(finished ? "holoprint.message.placement_complete_locked" : "holoprint.message.click_a_hologram"));
 			return;
 		}
 		if (under.locked()) {
@@ -110,7 +118,19 @@ final class MoveTool implements EditorTool {
 		follow.reset(under);
 		state = State.FOLLOW;
 		carried = under;
+		under.moving(true);
 		restorable = true;
+	}
+
+	@Override
+	public boolean escape(Minecraft mc) {
+		// A placement picked up and carried goes back where it was; a new one (just loaded) has nowhere to go back to.
+		if (state == State.FOLLOW && carried != null && restorable) {
+			putBack();
+			state = State.PINNED;
+			return true;
+		}
+		return false;
 	}
 
 	@Override
@@ -124,6 +144,9 @@ final class MoveTool implements EditorTool {
 		Hologram hologram = HologramRenderer.active();
 		if (hologram != null && savedOrigin != null) {
 			hologram.setTransform(savedOrigin, savedTurns, savedMirror);
+		}
+		if (carried != null) {
+			carried.moving(false);
 		}
 		carried = null;
 		restorable = false;

@@ -22,6 +22,14 @@ public abstract class MinecraftMixin {
 		HotbarTools.consumeKeys(Minecraft.getInstance());
 	}
 
+	// Escape cancels what the editor is doing (a move, a selection, a copy in hand) before it opens the pause menu.
+	@Inject(method = "pauseGame", at = @At("HEAD"), cancellable = true)
+	private void holoprint$escape(final boolean pauseOnly, final CallbackInfo ci) {
+		if (Editor.escape(Minecraft.getInstance())) {
+			ci.cancel();
+		}
+	}
+
 	@Inject(method = "startAttack", at = @At("HEAD"), cancellable = true)
 	private void holoprint$startAttack(final CallbackInfoReturnable<Boolean> cir) {
 		if (Freecam.isActive()) {

@@ -117,6 +117,11 @@ public final class Verifier {
 			return out.toLongArray();
 		}
 
+		/** Something to build, and none of it missing, wrong or in a part the client has not got. */
+		public boolean isComplete() {
+			return needed > 0 && missing == 0 && wrongCount == 0 && wrongStateCount == 0 && unloaded == 0;
+		}
+
 		/** True while the hologram is still where and as it was when this was worked out. */
 		public boolean matches(BlockPos origin, int turns, boolean mirrored) {
 			return this.origin.equals(origin) && this.turns == turns && this.mirrored == mirrored;
@@ -129,6 +134,8 @@ public final class Verifier {
 		final int turns;
 		final boolean mirrored;
 		final boolean withExtra;
+		/** The cells to look at, in order, when only the blocks matter (the whole box is walked when empty cells are looked at too). */
+		final int[] cells;
 		int cursor;
 		long startedAt;
 		boolean finished;
@@ -149,6 +156,7 @@ public final class Verifier {
 			this.turns = hologram.quarterTurns();
 			this.mirrored = hologram.mirrored();
 			this.withExtra = withExtra;
+			this.cells = withExtra ? null : hologram.solidCells();
 			this.built = new BitSet(hologram.gridLength());
 		}
 
@@ -162,8 +170,8 @@ public final class Verifier {
 	/** Ticks a change waits before the new check, so a burst of changes is looked at once. */
 	private static final int DIRTY_DELAY = 2;
 	private static final Map<Hologram, Job> JOBS = new IdentityHashMap<>();
-	private static Hologram forced;
-	private static long forcedUntil;
+	/** Holograms asked for by a window, and the game time until which they are checked. */
+	private static final Map<Hologram, Long> FORCED = new IdentityHashMap<>();
 	private static int rotation;
 
 	private Verifier() {}
@@ -175,8 +183,7 @@ public final class Verifier {
 	/** Asks for {@code hologram} to be checked for the next few seconds, even when no option needs it (the material list is open). */
 	public static void request(Hologram hologram) {
 		Minecraft mc = Minecraft.getInstance();
-		forced = hologram;
-		forcedUntil = (mc.level == null ? 0 : mc.level.getGameTime()) + 100;
+		FORCED.put(hologram, (mc.level == null ? 0 : mc.level.getGameTime()) + 100);
 	}
 
 	/** Forgets the last result of a hologram, so the next check starts at once. */
@@ -338,7 +345,7 @@ public final class Verifier {
 			return false;
 		}
 		HoloprintConfig config = HoloprintConfig.get();
-		return config.hideBuilt || config.showDifferences || (hologram == forced && now < forcedUntil);
+		return config.hideBuilt || config.showDifferences || now < FORCED.getOrDefault(hologram, 0L);
 	}
 
 	private static void tick(Minecraft mc) {
@@ -382,11 +389,12 @@ public final class Verifier {
 	/** Looks at up to {@code budget} more cells; returns how many were looked at. */
 	private static int step(Minecraft mc, Hologram hologram, Job job, int budget, long now) {
 		int sizeX = hologram.sizeX(), sizeZ = hologram.sizeZ();
-		int length = hologram.gridLength();
+		int[] cells = job.cells;
+		int length = cells == null ? hologram.gridLength() : cells.length;
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 		int done = 0;
 		while (job.cursor < length && done < budget) {
-			int i = job.cursor++;
+			int i = cells == null ? job.cursor++ : cells[job.cursor++];
 			done++;
 			BlockState wanted = hologram.gridState(i);
 			if (wanted == null && !job.withExtra) {
@@ -400,7 +408,8 @@ public final class Verifier {
 			if (chunkX != job.lastChunkX || chunkZ != job.lastChunkZ) {
 				job.lastChunkX = chunkX;
 				job.lastChunkZ = chunkZ;
-				job.lastLoaded = mc.level.hasChunk(chunkX, chunkZ);
+				// hasChunk says yes for any chunk inside the view window, even one the server never sent: the block would read as void air
+				job.lastLoaded = mc.level.getChunk(chunkX, chunkZ, net.minecraft.world.level.chunk.status.ChunkStatus.FULL, false) != null;
 			}
 			if (wanted == null) {
 				if (job.lastLoaded) {
@@ -465,7 +474,24 @@ public final class Verifier {
 				rows, job.needed, job.placed, job.missing, job.wrongCount, job.wrongStateCount, job.extraCount, job.unloaded, now);
 			made.wrongSetting = job.wrongSetting.toLongArray();
 			made.wrongSettingCount = job.wrongSettingCount;
+			Result before = hologram.verification();
+			boolean wasComplete = before != null && before.matches(job.origin, job.turns, job.mirrored) && before.isComplete();
 			hologram.verification(made);
+			// A placement opened again that no longer matches (it was moved) goes back to being checked as usual.
+			// (a move that is still being made, and may be cancelled, does not count; neither does a check of where it used to be)
+			if (hologram.reopened() && !hologram.moving() && !made.isComplete() && made.matches(hologram.origin(), hologram.quarterTurns(), hologram.mirrored())) {
+				hologram.reopened(false);
+			}
+			// It has just been finished (the last block went in, or a Build ended): it says so, and stops being the one Move, R and M work on.
+			if (before != null && !wasComplete && made.isComplete() && !hologram.reopened() && !hologram.markedComplete()) {
+				if (mc.player != null) {
+					mc.player.sendSystemMessage(Component.translatable("holoprint.message.placement_complete", hologram.displayName()));
+				}
+				if (hologram == HologramRenderer.active() && !hologram.locked()) {
+					HologramRenderer.deselect(hologram);
+					io.github.dannygt97.holoprint.placement.Editor.activePlacementChanged(mc);
+				}
+			}
 		}
 		return done;
 	}

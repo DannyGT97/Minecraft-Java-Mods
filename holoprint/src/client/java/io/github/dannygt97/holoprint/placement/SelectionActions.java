@@ -145,6 +145,7 @@ public final class SelectionActions {
 			Editor.setMode(mc, EditorMode.COPY);
 			if (Editor.mode() == EditorMode.COPY) {
 				((CopyTool) Editor.tool(EditorMode.COPY)).carryMove(mc, hologram, min, sizeX, sizeY, sizeZ);
+				io.github.dannygt97.holoprint.ui.HotbarTools.holding();
 			}
 			return;
 		}
@@ -170,6 +171,7 @@ public final class SelectionActions {
 		Editor.setMode(mc, EditorMode.COPY);
 		if (Editor.mode() == EditorMode.COPY) {
 			((CopyTool) Editor.tool(EditorMode.COPY)).carryFromCamera(mc, hologram);
+			io.github.dannygt97.holoprint.ui.HotbarTools.holding();
 		}
 	}
 

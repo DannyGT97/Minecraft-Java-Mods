@@ -110,7 +110,7 @@ public final class EditorScreen extends Screen implements EditorPanel.Host {
 		if (!open) {
 			panels.push(new MaterialsPanel());
 		}
-		rebuildWidgets();
+		leaveIfBare();
 	}
 
 	/** True while a window is open over the editor. */
@@ -141,14 +141,23 @@ public final class EditorScreen extends Screen implements EditorPanel.Host {
 		if (!panels.isEmpty()) {
 			panels.pop();
 		}
-		// Closing the last window shows the toolbar again; leaving it for the bare free camera is Tab's job.
-		rebuildWidgets();
+		// Closing the last window shows the toolbar again (or, with the tools on the hotbar, goes back to the camera).
+		leaveIfBare();
 	}
 
 	@Override
 	public void closeAll() {
 		panels.clear();
-		rebuildWidgets();
+		leaveIfBare();
+	}
+
+	/** With the tools on the hotbar this screen is only a place for windows: with none open it goes back to the camera. */
+	private void leaveIfBare() {
+		if (panels.isEmpty() && HotbarTools.enabled()) {
+			onClose();
+		} else {
+			rebuildWidgets();
+		}
 	}
 
 	@Override
@@ -172,7 +181,7 @@ public final class EditorScreen extends Screen implements EditorPanel.Host {
 	@Override
 	protected void init() {
 		// While a window is open the bar is hidden, as if Tab had been pressed, so the window can use the whole screen.
-		List<Toolbar.Tool> tools = panels.isEmpty() ? Toolbar.tools() : List.<Toolbar.Tool>of();
+		List<Toolbar.Tool> tools = panels.isEmpty() && !HotbarTools.enabled() ? Toolbar.tools() : List.<Toolbar.Tool>of();
 		// One single column; on a very short screen the buttons shrink a little instead of starting a second column.
 		int groups = (int) tools.stream().map(Toolbar.Tool::group).distinct().count();
 		int needed = tools.size() * BUTTON + (tools.size() - 1) * GAP + Math.max(0, groups - 1) * (GROUP_GAP - GAP);

@@ -182,9 +182,10 @@ public final class EasyPlace {
 				lastHandled = now;
 				return true;
 			}
-			if (wouldOpenInterface(mc, holograms) && (useHeld >= 1 || now - lastHandled <= SESSION_TICKS)) {
-				// A chest, dispenser, furnace, door, lever... of the hologram, pointed at while placing: with the button held (or right after a placement) the
-				// click is not for it, and the game would open its window or flip it. A single fresh click still uses it.
+			if (wouldOpenInterface(mc, holograms) && (player.getMainHandItem().getItem() instanceof BlockItem || useHeld >= 1 || now - lastHandled <= SESSION_TICKS)) {
+				// A chest, dispenser, furnace, door, lever... of the hologram, pointed at while placing (a block in hand, or the button held, or right after a
+				// placement): the click is not for it, and the game would open its window or flip it. Like Litematica, which leaves the use click to the easy placement
+				// while it is on. With an empty hand or another item, a click uses it as usual.
 				if (now - lastNotice >= 30) {
 					lastNotice = now;
 					mc.gui.hud.setOverlayMessage(Component.translatable("holoprint.message.easy_no_open"), false);
@@ -208,6 +209,17 @@ public final class EasyPlace {
 				if (now - lastNotice >= 30) {
 					lastNotice = now;
 					mc.gui.hud.setOverlayMessage(Component.translatable("holoprint.message.easy_wrong", misplaced.getBlock().getName()), false);
+				}
+				lastHandled = now;
+				return true;
+			}
+			BlockState misstated = wouldPlaceWrongState(mc, holograms);
+			if (misstated != null) {
+				// The hologram asks for this very block here, but no way of placing it gives the state it asks for (a wall sign with nothing behind it, a chain that
+				// would lie down): the game, left alone, would put it down anyway against what the pointer is on, the wrong way round.
+				if (now - lastNotice >= 30) {
+					lastNotice = now;
+					mc.gui.hud.setOverlayMessage(Component.translatable("holoprint.message.easy_wrong_state", misstated.getBlock().getName()), false);
 				}
 				lastHandled = now;
 				return true;
@@ -313,7 +325,10 @@ public final class EasyPlace {
 			return;
 		}
 		Minecraft mc = Minecraft.getInstance();
-		Component text = Component.translatable(shownMode == BLOCKED ? "holoprint.hud.easy_blocked" : shownMode == TOGGLE ? "holoprint.hud.easy_toggle" : shownMode == ADJUST ? "holoprint.hud.easy_adjust" : "holoprint.hud.easy_target", state.getBlock().getName());
+		// A block that nothing holds up yet (a carpet over water that is not there, a torch with no wall) says so: that is what it waits for.
+		BlockPos cell = shownCell;
+		boolean unsupported = shownMode == BLOCKED && cell != null && mc.level != null && !state.canSurvive(mc.level, cell);
+		Component text = Component.translatable(unsupported ? "holoprint.hud.easy_support" : shownMode == BLOCKED ? "holoprint.hud.easy_blocked" : shownMode == TOGGLE ? "holoprint.hud.easy_toggle" : shownMode == ADJUST ? "holoprint.hud.easy_adjust" : "holoprint.hud.easy_target", state.getBlock().getName());
 		int x = (graphics.guiWidth() - mc.font.width(text)) / 2;
 		int y = graphics.guiHeight() / 2 + 14;
 		graphics.fill(x - 3, y - 2, x + mc.font.width(text) + 3, y + 10, 0x88000000);
@@ -322,7 +337,9 @@ public final class EasyPlace {
 
 	/** Runs every tick: finishes a click that was waiting for the server to turn, and never leaves the server looking the wrong way. */
 	private static void tick(Minecraft mc) {
-		useHeld = mc.options.keyUse.isDown() ? useHeld + 1 : 0;
+		// The button counts as held while the mouse button is still down, even when the game has let go of its key (a screen opened and closed, like the
+		// sign editor): otherwise the next repeated click would look like a fresh one, and would open the editor on the sign just placed.
+		useHeld = mc.options.keyUse.isDown() || mc.mouseHandler.isRightPressed() ? useHeld + 1 : 0;
 		fillSignEditor(mc);
 		if (mc.player != null) {
 			if (mc.player.getYRot() == seenYaw && mc.player.getXRot() == seenPitch) {
@@ -392,6 +409,8 @@ public final class EasyPlace {
 	 * A sign placed by the easy placement opens the game's sign editor. If the hologram's sign has text, it is written into the editor
 	 * and the editor is closed at once, which sends the text to the server as if it had been typed. Only the front text: the back
 	 * text, the wax, the dye and the glow need the player to do them (they are not text).
+	 * With the use button still held down (the fill is going on) the editor is closed in any case, empty if the hologram's sign has no text:
+	 * it must not get in the way of the blocks that come next. A single click, already let go of, still leaves the editor open to be typed in.
 	 */
 	private static void fillSignEditor(Minecraft mc) {
 		if (!(mc.gui.screen() instanceof net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen screen) || mc.level == null || PLACED.isEmpty()) {
@@ -404,6 +423,8 @@ public final class EasyPlace {
 			return;
 		}
 		PLACED.remove(pos.asLong());
+		// opening a screen lets go of every key, so the button is asked of the mouse itself
+		boolean held = mc.mouseHandler.isRightPressed() || mc.options.keyUse.isDown();
 		for (Hologram hologram : HologramRenderer.all()) {
 			net.minecraft.world.level.block.entity.SignBlockEntity ghost = hologram.signAt(mc, pos);
 			if (ghost == null) {
@@ -416,10 +437,13 @@ public final class EasyPlace {
 				messages[i] = lines.get(i).getString();
 				any |= !messages[i].isEmpty();
 			}
-			if (any) {
+			if (any || held) {
 				mc.setScreenAndShow(null);
 			}
 			return;
+		}
+		if (held) {
+			mc.setScreenAndShow(null);
 		}
 	}
 
@@ -679,6 +703,45 @@ public final class EasyPlace {
 			return null;
 		}
 		return want;
+	}
+
+	/**
+	 * The block a hologram asks for at the spot where the game would put the block in hand, when what the game would put there is not what the hologram has
+	 * (another block, or the same one facing, standing or hanging another way), or null when the click would do no harm.
+	 */
+	private static BlockState wouldPlaceWrongState(Minecraft mc, List<Hologram> holograms) {
+		if (!(mc.hitResult instanceof BlockHitResult hit) || hit.getType() != net.minecraft.world.phys.HitResult.Type.BLOCK) {
+			return null;
+		}
+		ItemStack held = mc.player.getMainHandItem();
+		if (!(held.getItem() instanceof BlockItem blockItem)) {
+			return null;
+		}
+		if (interactive(mc.level.getBlockState(hit.getBlockPos())) && !mc.player.isShiftKeyDown()) {
+			return null;
+		}
+		BlockPlaceContext context = blockItem.updatePlacementContext(new BlockPlaceContext(mc.player, InteractionHand.MAIN_HAND, held, hit));
+		if (context == null) {
+			return null;
+		}
+		BlockState want = wanted(holograms, context.getClickedPos());
+		if (want == null || want.getBlock() instanceof LiquidBlock || want.getBlock().asItem() != held.getItem()) {
+			return null;
+		}
+		BlockItemAccessor accessor = (BlockItemAccessor) blockItem;
+		BlockState result = accessor.holoprint$placementState(context);
+		if (result == null || !accessor.holoprint$canPlace(context, result)) {
+			return null;
+		}
+		if (result.getBlock() != want.getBlock()) {
+			return want;
+		}
+		for (Property<?> property : want.getProperties()) {
+			if (decisive(want, property) && !result.getValue(property).equals(want.getValue(property))) {
+				return want;
+			}
+		}
+		return null;
 	}
 
 	/** True when the pointer is on a block, or on the spot a block would go, within a few blocks of a hologram's box. */

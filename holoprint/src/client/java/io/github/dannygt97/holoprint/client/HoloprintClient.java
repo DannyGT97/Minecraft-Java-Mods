@@ -9,6 +9,7 @@ public final class HoloprintClient implements ClientModInitializer {
 		io.github.dannygt97.holoprint.hologram.SelectionRenderer.init();
 		io.github.dannygt97.holoprint.placement.Editor.init();
 		io.github.dannygt97.holoprint.placement.EasyPlace.init();
+		io.github.dannygt97.holoprint.placement.HologramBuilder.init();
 		io.github.dannygt97.holoprint.hologram.Verifier.init();
 		io.github.dannygt97.holoprint.placement.PlacementStore.init();
 		io.github.dannygt97.holoprint.ui.EditorScreen.registerTools();

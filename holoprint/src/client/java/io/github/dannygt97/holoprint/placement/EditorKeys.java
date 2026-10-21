@@ -2,7 +2,9 @@ package io.github.dannygt97.holoprint.placement;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import io.github.dannygt97.holoprint.config.HoloprintConfig;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 
 /**
@@ -13,7 +15,7 @@ public final class EditorKeys {
 	private static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("holoprint", "main"));
 
 	/** Opens the editor (the free camera) and closes it again. */
-	public static final KeyMapping EDITOR = key("editor", InputConstants.KEY_G);
+	public static final KeyMapping EDITOR = key("editor", InputConstants.KEY_M);
 	/** Switches to the next editing mode. */
 	public static final KeyMapping MODE = key("mode", InputConstants.KEY_N);
 	/** Switches between turning the camera with the mouse and a free cursor for the buttons. */
@@ -22,7 +24,7 @@ public final class EditorKeys {
 	public static final KeyMapping SPEED_DOWN = key("speed_down", InputConstants.KEY_COMMA);
 	public static final KeyMapping SPEED_UP = key("speed_up", InputConstants.KEY_PERIOD);
 	public static final KeyMapping ROTATE = key("rotate", InputConstants.KEY_R);
-	public static final KeyMapping MIRROR = key("mirror", InputConstants.KEY_M);
+	public static final KeyMapping MIRROR = key("mirror", InputConstants.KEY_Z);
 	public static final KeyMapping CANCEL = key("cancel", InputConstants.KEY_BACKSPACE);
 	public static final KeyMapping FORWARD = key("nudge_forward", InputConstants.KEY_UP);
 	public static final KeyMapping BACK = key("nudge_back", InputConstants.KEY_DOWN);
@@ -57,6 +59,32 @@ public final class EditorKeys {
 
 	/** Loads the class so the key mappings get registered. */
 	public static void init() {}
+
+	/**
+	 * Once, on the first tick: a key that was saved while G was still the editor's default (and M mirror's) moves to the new
+	 * defaults, M and Z. Only a key that is still exactly the old default is touched; one the player chose is left alone.
+	 */
+	static void migrateOldDefaults(Minecraft mc) {
+		HoloprintConfig config = HoloprintConfig.get();
+		if (config.keyDefaults >= 1) {
+			return;
+		}
+		config.keyDefaults = 1;
+		boolean changed = false;
+		if (EDITOR.saveString().equals("key.keyboard.g")) {
+			EDITOR.setKey(EDITOR.getDefaultKey());
+			changed = true;
+		}
+		if (MIRROR.saveString().equals("key.keyboard.m")) {
+			MIRROR.setKey(MIRROR.getDefaultKey());
+			changed = true;
+		}
+		if (changed) {
+			KeyMapping.resetMapping();
+			mc.options.save();
+		}
+		config.save();
+	}
 
 	/** Throws away presses nobody used, so they do not pile up and fire later in another mode. */
 	static void drainUnused() {

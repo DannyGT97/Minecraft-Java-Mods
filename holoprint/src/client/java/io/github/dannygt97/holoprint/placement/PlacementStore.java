@@ -139,6 +139,8 @@ public final class PlacementStore {
 			entry.addProperty("visible", hologram.visible());
 			entry.addProperty("enabled", hologram.enabled());
 			entry.addProperty("locked", hologram.locked());
+			entry.addProperty("complete", hologram.markedComplete());
+			entry.addProperty("reopened", hologram.reopened());
 			entry.addProperty("showEntities", hologram.showEntities());
 			array.add(entry);
 		}
@@ -254,6 +256,8 @@ public final class PlacementStore {
 						result.visible(bool(entry, "visible", true));
 						result.enabled(bool(entry, "enabled", true));
 						result.locked(bool(entry, "locked", false));
+						result.markedComplete(bool(entry, "complete", false));
+						result.reopened(bool(entry, "reopened", false));
 						result.showEntities(bool(entry, "showEntities", true));
 						restored.set(index, result);
 					} else if (result == null) {

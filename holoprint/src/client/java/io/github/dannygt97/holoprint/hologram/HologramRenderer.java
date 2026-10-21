@@ -668,8 +668,15 @@ public final class HologramRenderer {
 
 	/** Makes an existing placement the one the Move mode works on. */
 	public static void makeActive(Hologram hologram) {
-		if (ALL.contains(hologram)) {
+		if (ALL.contains(hologram) && !hologram.complete()) {
 			active = hologram;
+		}
+	}
+
+	/** The given placement stops being the one Move works on (it is finished); nothing else changes. */
+	public static void deselect(Hologram hologram) {
+		if (active == hologram) {
+			active = null;
 		}
 	}
 
@@ -711,7 +718,20 @@ public final class HologramRenderer {
 		for (double t = 0.0; t <= maxDistance; t += 0.2) {
 			BlockPos at = BlockPos.containing(from.add(direction.scale(t)));
 			for (Hologram hologram : ALL) {
-				if (hologram != ignore && hologram.visible() && hologram.containsWorld(at)) {
+				if (hologram != ignore && hologram.visible() && !hologram.complete() && hologram.containsWorld(at)) {
+					return hologram;
+				}
+			}
+		}
+		return null;
+	}
+
+	/** A finished placement the ray passes through (they cannot be picked, but the user is told why), or null. */
+	public static Hologram pickComplete(Vec3 from, Vec3 direction, double maxDistance) {
+		for (double t = 0.0; t <= maxDistance; t += 0.2) {
+			BlockPos at = BlockPos.containing(from.add(direction.scale(t)));
+			for (Hologram hologram : ALL) {
+				if (hologram.visible() && hologram.complete() && hologram.containsWorld(at)) {
 					return hologram;
 				}
 			}

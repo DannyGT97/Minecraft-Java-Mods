@@ -82,11 +82,19 @@ public final class Hologram {
 	private boolean visible = true;
 	private boolean enabled = true;
 	private boolean locked;
+	/** The user said this placement is finished, whatever the check of the world finds. */
+	private boolean markedComplete;
+	/** A finished placement the user opened again to move it: it is drawn whole, built blocks included, and is not taken as complete until it is marked again. */
+	private boolean reopened;
+	/** The editor is carrying it right now (a move not yet confirmed): where it is does not count yet. */
+	private volatile boolean moving;
 	private int sizeX, sizeY, sizeZ;
 	/** Local positions of the exposed blocks, for finding out what the pointer is over. Built on first use. */
 	private LongOpenHashSet solid;
 	/** Every block of the hologram, hidden ones too: a number per cell, 0 for empty, else an index into {@link #gridStates}. */
 	private int[] grid = new int[0];
+	/** The numbers of the cells that hold a block, in ascending order: a huge box is mostly air, and the checks and the build walk only these. */
+	private int[] solidCells = new int[0];
 	private List<BlockState> gridStates = List.of();
 	/** Whether the entities of the schematic are drawn for this placement (on top of the global option). */
 	private boolean showEntities = true;
@@ -128,6 +136,19 @@ public final class Hologram {
 	public void visible(boolean value) { this.visible = value; }
 	public boolean enabled() { return enabled; }
 	public void enabled(boolean value) { this.enabled = value; }
+	public boolean markedComplete() { return markedComplete; }
+	public boolean reopened() { return reopened; }
+	public boolean moving() { return moving; }
+	public void moving(boolean value) { this.moving = value; }
+
+	public void reopened(boolean value) {
+		if (reopened != value) {
+			reopened = value;
+			// what is hidden for being built changes, so every cell of the view is made again
+			builtEpoch++;
+		}
+	}
+	public void markedComplete(boolean value) { this.markedComplete = value; }
 	public boolean locked() { return locked; }
 	public void locked(boolean value) { this.locked = value; }
 	public boolean showEntities() { return showEntities; }
@@ -295,6 +316,11 @@ public final class Hologram {
 	}
 
 	/** Number of cells of the hologram's box. */
+	/** The cells of the box that hold a block, in ascending order (see {@link #gridState}). */
+	public int[] solidCells() {
+		return solidCells;
+	}
+
 	public int gridLength() {
 		return grid.length;
 	}
@@ -356,13 +382,35 @@ public final class Hologram {
 	/** The cells that are already built, as of the last check, or null when there is no check that still applies. */
 	public java.util.BitSet builtCells() {
 		Verifier.Result result = verification;
-		return result != null && result.matches(origin, quarterTurns, mirrored) ? result.built : null;
+		return !reopened && result != null && result.matches(origin, quarterTurns, mirrored) ? result.built : null;
 	}
 
 	/** True when the block at {@code local} (a position inside the box) is already built in the world, as of the last check. */
 	public boolean isBuilt(BlockPos local) {
 		Verifier.Result result = verification;
 		return result != null && result.matches(origin, quarterTurns, mirrored) && result.built.get((local.getY() * sizeZ + local.getZ()) * sizeX + local.getX());
+	}
+
+	/** True when the last check found nothing left to build, nothing wrong and no part out of reach. */
+	public boolean autoComplete() {
+		Verifier.Result result = verification;
+		return result != null && result.matches(origin, quarterTurns, mirrored) && result.isComplete();
+	}
+
+	/** Finished, as the user marked it or as the check of the world found it (unless the user opened it again). */
+	public boolean complete() {
+		return !reopened && (markedComplete || autoComplete());
+	}
+
+	/** The box of the placements window: a finished placement is opened again, any other is marked as finished. */
+	public void toggleComplete() {
+		if (complete()) {
+			markedComplete = false;
+			reopened(true);
+		} else {
+			markedComplete = true;
+			reopened(false);
+		}
 	}
 
 	/** Restores an earlier position and orientation, for cancelling a move. */
@@ -561,6 +609,7 @@ public final class Hologram {
 			entries = List.of();
 			sections = List.of();
 			grid = new int[0];
+			solidCells = new int[0];
 			gridStates = List.of();
 			sizeX = sizeY = sizeZ = 0;
 			return;
@@ -600,6 +649,7 @@ public final class Hologram {
 
 		// 2. One number per cell: 0 is empty, anything else is a block state of this hologram.
 		int[] grid = new int[(int) volume];
+		it.unimi.dsi.fastutil.ints.IntArrayList solid = new it.unimi.dsi.fastutil.ints.IntArrayList();
 		List<BlockState> states = new ArrayList<>();
 		states.add(null);
 		Map<BlockState, Integer> stateNumber = new HashMap<>();
@@ -654,13 +704,20 @@ public final class Hologram {
 						int lx = turnedX(px, pz, mirrored, quarterTurns) - minX;
 						int ly = region.origin().getY() + y - minY;
 						int lz = turnedZ(px, pz, mirrored, quarterTurns) - minZ;
-						grid[(ly * sizeZ + lz) * sizeX + lx] = number;
+						int cell = (ly * sizeZ + lz) * sizeX + lx;
+						if (grid[cell] == 0) {
+							solid.add(cell);
+						}
+						grid[cell] = number;
 					}
 				}
 			}
 		}
 
 		this.grid = grid;
+		int[] solidArray = solid.toIntArray();
+		java.util.Arrays.sort(solidArray);
+		this.solidCells = solidArray;
 		stampsX = (sizeX + 15) >> 4;
 		stampsY = (sizeY + 15) >> 4;
 		stampsZ = (sizeZ + 15) >> 4;

@@ -42,8 +42,9 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class HologramBuilder {
 	private static final int CONFIRM_MS = 4000;
-	/** Blocks written per server tick. */
-	private static final int BATCH = 20_000;
+	/** Cells emptied, or blocks written, per server tick (never more than {@link #BATCH_MS} either), so a huge build spreads over many ticks and frames. */
+	private static final int BATCH = 2_000;
+	private static final long BATCH_MS = 20;
 	/** Written without neighbour updates (the hologram already has the connections right) and without drops. */
 	private static final int FLAGS = 2 | 16 | 32;
 	/** The most blocks one /fill or /clone may touch by default. */
@@ -60,7 +61,20 @@ public final class HologramBuilder {
 	/** True while the commands of a build are still going out. */
 	private static boolean commandBuild;
 
+	/** The next batches of the builds in a world of one's own, run one per server tick. */
+	private static java.util.ArrayList<Runnable> later = new java.util.ArrayList<>();
+
 	private HologramBuilder() {}
+
+	public static void init() {
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
+			if (!later.isEmpty()) {
+				java.util.ArrayList<Runnable> now = later;
+				later = new java.util.ArrayList<>();
+				now.forEach(Runnable::run);
+			}
+		});
+	}
 
 	/** How far along the pointer a hologram is looked for. */
 	private static final double PICK_DISTANCE = 256.0;
@@ -144,18 +158,18 @@ public final class HologramBuilder {
 		ResourceKey<Level> dimension = mc.level.dimension();
 		BlockPos origin = hologram.origin();
 		int sizeX = hologram.sizeX(), sizeZ = hologram.sizeZ();
-		int length = hologram.gridLength();
+		int[] cells = hologram.solidCells();
 		long clearing = clear == null ? 0 : (long) clear.sizeX() * clear.sizeY() * clear.sizeZ();
 		List<Object[]> blockEntities = new ArrayList<>();
 		hologram.forEachBlockEntity((local, data) -> blockEntities.add(new Object[] {origin.offset(local), data}));
 		List<CompoundTag> entities = hologram.entityTags(mc);
 		busy = true;
-		Editor.message(mc, Component.translatable("holoprint.message.building", length));
+		Editor.message(mc, Component.translatable("holoprint.message.building", cells.length));
 		long[] cursor = {0};
 		long[] placed = {0};
 		Runnable[] step = new Runnable[1];
 		step[0] = () -> {
-			ServerLevel level = server.getLevel(dimension);
+			ServerLevel level = server.isRunning() ? server.getLevel(dimension) : null;
 			if (level == null) {
 				busy = false;
 				return;
@@ -170,7 +184,7 @@ public final class HologramBuilder {
 						entity.discard();
 					}
 				}
-				long end = Math.min(clearing, cursor[0] + BATCH);
+				long end = Math.min(clearing, cursor[0] + BATCH * 4L);
 				for (long i = cursor[0]; i < end; i++) {
 					int x = (int) (i % clear.sizeX()), z = (int) ((i / clear.sizeX()) % clear.sizeZ()), y = (int) (i / ((long) clear.sizeX() * clear.sizeZ()));
 					at.set(clear.min().getX() + x, clear.min().getY() + y, clear.min().getZ() + z);
@@ -179,25 +193,28 @@ public final class HologramBuilder {
 					}
 				}
 				cursor[0] = end;
-				server.execute(step[0]);
+				later.add(step[0]);
 				return;
 			}
-			long start = cursor[0] - clearing;
-			long end = Math.min(length, start + BATCH);
-			for (long i = start; i < end; i++) {
-				BlockState state = hologram.gridState((int) i);
+			int start = (int) (cursor[0] - clearing);
+			int end = Math.min(cells.length, start + BATCH);
+			long until = System.nanoTime() + BATCH_MS * 1_000_000L;
+			int at0 = start;
+			for (; at0 < end && System.nanoTime() < until; at0++) {
+				int cell = cells[at0];
+				BlockState state = hologram.gridState(cell);
 				if (state == null) {
 					continue;
 				}
-				int x = (int) (i % sizeX), z = (int) ((i / sizeX) % sizeZ), y = (int) (i / ((long) sizeX * sizeZ));
+				int x = cell % sizeX, z = (cell / sizeX) % sizeZ, y = cell / (sizeX * sizeZ);
 				at.set(origin.getX() + x, origin.getY() + y, origin.getZ() + z);
 				if (level.setBlock(at, state, FLAGS)) {
 					placed[0]++;
 				}
 			}
-			cursor[0] = clearing + end;
-			if (end < length) {
-				server.execute(step[0]);
+			cursor[0] = clearing + at0;
+			if (at0 < cells.length) {
+				later.add(step[0]);
 				return;
 			}
 			for (Object[] entry : blockEntities) {

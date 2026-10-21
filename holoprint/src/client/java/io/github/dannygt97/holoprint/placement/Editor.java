@@ -6,6 +6,7 @@ import java.util.List;
 import io.github.dannygt97.holoprint.freecam.Freecam;
 import io.github.dannygt97.holoprint.hologram.HologramRenderer;
 import io.github.dannygt97.holoprint.ui.EditorScreen;
+import io.github.dannygt97.holoprint.ui.HotbarTools;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.Minecraft;
@@ -76,6 +77,7 @@ public final class Editor {
 		}
 		Freecam.start(mc);
 		active = true;
+		atBuild = false;
 		mode = HologramRenderer.active() != null ? EditorMode.MOVE : EditorMode.SELECT;
 		// Coming back to the editor never makes a placed hologram follow the camera again: it stays where it was put.
 		tool(mode).enter(mc, false);
@@ -94,8 +96,20 @@ public final class Editor {
 		Freecam.stop(mc);
 	}
 
-	/** The next mode in the ring; Move is skipped while there is nothing to move, and after the last mode comes the first. */
+	/** True while the key that changes the mode has stopped on Build (a tool of the hotbar that is used with a click, not a mode): the mode itself is still the last one. */
+	private static boolean atBuild;
+
+	/**
+	 * The next mode in the ring; Move is skipped while there is nothing to move, and after the last mode comes the first. With the tools on the hotbar,
+	 * Build is one more stop after the last mode: the highlight goes to it and a click builds.
+	 */
 	public static void cycleMode(Minecraft mc) {
+		if (!atBuild && mode == EditorMode.values()[EditorMode.values().length - 1] && HotbarTools.enabled() && HotbarTools.buildUsable()) {
+			atBuild = true;
+			HotbarTools.focusBuild();
+			return;
+		}
+		atBuild = false;
 		EditorMode next = mode.next();
 		if (next == EditorMode.MOVE && HologramRenderer.active() == null) {
 			next = next.next();
@@ -112,6 +126,7 @@ public final class Editor {
 
 	/** Changes the editing mode. Nothing is discarded; Move needs a hologram. */
 	public static void setMode(Minecraft mc, EditorMode wanted) {
+		atBuild = false;
 		if (!active || wanted == mode) {
 			return;
 		}
@@ -122,6 +137,11 @@ public final class Editor {
 		tool(mode).leave(mc);
 		mode = wanted;
 		tool(mode).enter(mc, false);
+	}
+
+	/** Escape, while the editor is on with no window open: true when it cancelled something (so the pause menu does not open). */
+	public static boolean escape(Minecraft mc) {
+		return active && mc.gui.screen() == null && tool(mode).escape(mc);
 	}
 
 	public static void onPrimaryClick() {
@@ -150,6 +170,8 @@ public final class Editor {
 		if (mode == EditorMode.MOVE) {
 			tool(mode).enter(mc, true);
 		}
+		// The hotbar was left on Load; the click that puts the new placement down has to reach Move.
+		io.github.dannygt97.holoprint.ui.HotbarTools.holding();
 	}
 
 	public static void showNewPlacement(Minecraft mc) {
@@ -245,6 +267,7 @@ public final class Editor {
 	}
 
 	private static void tick(Minecraft mc) {
+		EditorKeys.migrateOldDefaults(mc);
 		if (mc.level == null || mc.player == null) {
 			if (active) {
 				active = false;
@@ -271,7 +294,8 @@ public final class Editor {
 			stop(mc);
 			return;
 		}
-		if (EditorKeys.INTERFACE.consumeClick() && screen == null) {
+		// With the tools on the hotbar the menu is opened from there (slot 9); Tab only opens it the old way without them.
+		if (EditorKeys.INTERFACE.consumeClick() && screen == null && !io.github.dannygt97.holoprint.ui.HotbarTools.enabled()) {
 			EditorScreen.open(mc);
 		}
 		if (EditorKeys.MATERIALS.consumeClick()) {

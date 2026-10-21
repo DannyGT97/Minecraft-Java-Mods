@@ -21,8 +21,14 @@ public final class EditorHud {
 
 	private EditorHud() {}
 
-	static Component name(KeyMapping key) {
-		return key.getTranslatedKeyMessage();
+	/** The name of a key as the legends show it: green, so the keys stand out from the text (the lang files colour mouse words blue). */
+	/** The name of {@code key} with Ctrl before it, all in the same colour. */
+	public static Component ctrl(KeyMapping key) {
+		return Component.literal("Ctrl+").append(key.getTranslatedKeyMessage()).withStyle(ChatFormatting.GREEN);
+	}
+
+	public static Component name(KeyMapping key) {
+		return key.getTranslatedKeyMessage().copy().withStyle(ChatFormatting.GREEN);
 	}
 
 	static void render(GuiGraphicsExtractor graphics, DeltaTracker tracker) {
@@ -49,12 +55,17 @@ public final class EditorHud {
 		lines.addAll(Editor.legend());
 		lines.add(Component.translatable("holoprint.hud.mode", name(EditorKeys.MODE)));
 		lines.add(Component.translatable("holoprint.hud.leave", name(EditorKeys.EDITOR)));
-		lines.add(Component.translatable("holoprint.hud.interface", name(EditorKeys.INTERFACE)));
+		lines.add(io.github.dannygt97.holoprint.ui.HotbarTools.enabled() ? Component.translatable("holoprint.hud.hotbar") : Component.translatable("holoprint.hud.interface", name(EditorKeys.INTERFACE)));
 		lines.add(Component.translatable("holoprint.hud.layers", LayerControl.modeName(), name(EditorKeys.LAYER_MODE), name(EditorKeys.LAYER_UP), name(EditorKeys.LAYER_DOWN)));
 		lines.add(Component.translatable("holoprint.hud.materials", name(EditorKeys.MATERIALS)));
 		lines.add(Component.translatable(io.github.dannygt97.holoprint.ui.HotbarTools.enabled() ? "holoprint.hud.fly_tools" : "holoprint.hud.fly", String.format("%.1f", Freecam.speed())));
 		if (HologramRenderer.all().isEmpty()) {
 			lines.add(Component.translatable("holoprint.hud.no_schematic").withStyle(ChatFormatting.YELLOW));
+			lines.add(Component.translatable("holoprint.hud.no_schematic.2").withStyle(ChatFormatting.YELLOW));
+		} else if (active == null) {
+			// the tools that work on a placement (Move, Build) are off, and why
+			lines.add(Component.translatable("holoprint.hud.no_active").withStyle(ChatFormatting.YELLOW));
+			lines.add(Component.translatable("holoprint.hud.no_active.2").withStyle(ChatFormatting.YELLOW));
 		} else if (HologramRenderer.isTrimmed()) {
 			lines.add(Component.translatable("holoprint.hud.trimmed", HologramRenderer.lastDrawn, HologramRenderer.lastInView).withStyle(ChatFormatting.YELLOW));
 		}

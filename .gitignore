@@ -26,9 +26,18 @@ replay_pid*.log
 
 # Personal notes
 TO DO.txt
+TODO.md
 
 # Mods kept local until they are tested enough to publish.
 dynamic-lights/
 
 # Local assistant and project context
 context.md
+
+# Local development tooling (test harness, scripts, decompiled game sources) and assistant notes.
+devtools/
+CLAUDE.md
+
+# Holoprint personal notes and plan (kept local)
+holoprint/TO DO.md
+holoprint/PLAN.md

@@ -63,6 +63,15 @@ final class SelectTool implements EditorTool {
 	}
 
 	@Override
+	public boolean escape(Minecraft mc) {
+		if (Selection.isEmpty()) {
+			return false;
+		}
+		Selection.clear();
+		return true;
+	}
+
+	@Override
 	public List<Component> legend() {
 		Component first;
 		if (Selection.isEmpty()) {
@@ -79,9 +88,9 @@ final class SelectTool implements EditorTool {
 		if (!Selection.isComplete()) {
 			return List.of(first, size);
 		}
-		String copy = "Ctrl+" + EditorHud.name(EditorKeys.COPY).getString();
+		Component copy = EditorHud.ctrl(EditorKeys.COPY);
 		Component actions = SelectionActions.canChangeWorld(Minecraft.getInstance())
-			? Component.translatable("holoprint.hud.select.actions", copy, "Ctrl+" + EditorHud.name(EditorKeys.CUT).getString(),
+			? Component.translatable("holoprint.hud.select.actions", copy, EditorHud.ctrl(EditorKeys.CUT),
 				EditorHud.name(EditorKeys.DELETE), EditorHud.name(EditorKeys.SAVE))
 			: Component.translatable("holoprint.hud.select.actions_survival", copy, EditorHud.name(EditorKeys.SAVE));
 		return List.of(first, size, actions,

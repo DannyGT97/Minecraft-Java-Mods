@@ -85,6 +85,7 @@ final class CopyTool implements EditorTool {
 			// The real area is moved here. If the command could not be started (turned copy, no permission) the area stays in hand.
 			if (SelectionActions.cloneMove(mc, moveFrom, moveX, moveY, moveZ, carried)) {
 				drop();
+				io.github.dannygt97.holoprint.ui.HotbarTools.released(true);
 			}
 			return;
 		}
@@ -94,6 +95,7 @@ final class CopyTool implements EditorTool {
 			Hologram placed = carried;
 			carried = null;
 			HologramRenderer.makeActive(placed);
+			io.github.dannygt97.holoprint.ui.HotbarTools.released(true);
 			return;
 		}
 		if (ray == null) {
@@ -113,6 +115,7 @@ final class CopyTool implements EditorTool {
 	public void secondaryClick(Minecraft mc, Vec3 ray) {
 		if (carried != null) {
 			drop();
+			io.github.dannygt97.holoprint.ui.HotbarTools.released(false);
 		} else {
 			Editor.stop(mc);
 		}
@@ -124,10 +127,19 @@ final class CopyTool implements EditorTool {
 	}
 
 	@Override
+	public boolean escape(Minecraft mc) {
+		if (carried == null) {
+			return false;
+		}
+		drop();
+		return true;
+	}
+
+	@Override
 	public List<Component> legend() {
 		if (carried == null) {
 			return List.of(Component.translatable("holoprint.hud.copy.pick"),
-				Component.translatable("holoprint.hud.copy.paste", "Ctrl+" + EditorHud.name(EditorKeys.PASTE).getString()));
+				Component.translatable("holoprint.hud.copy.paste", EditorHud.ctrl(EditorKeys.PASTE)));
 		}
 		if (moveFrom != null) {
 			return List.of(Component.translatable("holoprint.hud.copy.moving"),
