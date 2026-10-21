@@ -29,8 +29,7 @@ public final class SelectionRenderer {
 			if (cell != null && !Editor.isActive()) {
 				drawBox(context, new AABB(cell).inflate(0.002), io.github.dannygt97.holoprint.placement.EasyPlace.targetBlocked() ? 0xFF9A9A9A : 0xFFFFD166);
 			}
-			activePlacement(context);
-			finishedPlacements(context);
+			selectedPlacement(context);
 			differences(context);
 			if (!Editor.isActive() || Editor.mode() != EditorMode.SELECT) {
 				return;
@@ -45,63 +44,43 @@ public final class SelectionRenderer {
 		});
 	}
 
-/** The colour of the box around a finished placement: a soft green, so that it is a mark and not a thing to work on. */
-private static final int FINISHED_COLOR = 0x9955FF55;
-
-/**
- * In the editor, a finished placement is not drawn (it is built), but a soft green box and its name above it say where it stands, however far it is. The
- * name keeps a readable size from far away.
- */
-private static void finishedPlacements(net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext context) {
-	if (!Editor.isActive() || !HoloprintConfig.get().showHolograms) {
-		return;
-	}
-	Vec3 cam = context.levelState().cameraRenderState.pos;
-	for (Hologram hologram : HologramRenderer.all()) {
-		if (!hologram.visible() || !hologram.complete() || hologram.sizeX() == 0) {
-			continue;
-		}
-		net.minecraft.core.BlockPos o = hologram.origin();
-		AABB box = new AABB(o.getX(), o.getY(), o.getZ(), o.getX() + hologram.sizeX(), o.getY() + hologram.sizeY(), o.getZ() + hologram.sizeZ()).inflate(0.03);
-		boolean picked = hologram == HologramRenderer.highlighted();
-		drawBox(context, box, picked ? ACTIVE_COLOR : FINISHED_COLOR);
-		double cx = (box.minX + box.maxX) / 2.0 - cam.x, cy = box.maxY + 0.7 - cam.y, cz = (box.minZ + box.maxZ) / 2.0 - cam.z;
-		double distance = Math.sqrt(cx * cx + cy * cy + cz * cz);
-		float scale = (float) Math.max(1.6, Math.min(12.0, distance / 10.0));
-		int index = HologramRenderer.all().indexOf(hologram);
-		net.minecraft.network.chat.Component name = net.minecraft.network.chat.Component.literal(io.github.dannygt97.holoprint.ui.panel.PlacementsPanel.nameOf(hologram, Math.max(0, index)))
-			.withStyle(picked ? net.minecraft.ChatFormatting.GOLD : net.minecraft.ChatFormatting.GREEN);
-		com.mojang.blaze3d.vertex.PoseStack pose = context.poseStack();
-		pose.pushPose();
-		pose.translate(cx, cy, cz);
-		pose.scale(scale, scale, scale);
-		context.submitNodeCollector().submitNameTag(pose, Vec3.ZERO, 0, name, false, net.minecraft.util.LightCoordsUtil.FULL_BRIGHT, context.levelState().cameraRenderState);
-		pose.popPose();
-	}
-}
-
-/** The colour of the box around the placement the editor works on. */
+/** The colour of the box around the placement that is selected. */
 private static final int ACTIVE_COLOR = 0xFFFFD166;
 
 /**
- * In the editor, the placement that is selected (the one Move, Build and the like work on) gets a gold box around it and its name
- * floating above, so that it can be told from the other placements.
+ * The placement that is selected (the one the editor works on, or a finished one picked in the list: only one at a time) gets a gold box around it and its
+ * name floating above, in the editor and out of it, however far it is. Like Litematica's boxes it is not tied to a tool; unlike them it does not vanish
+ * past the far plane of the camera: a box farther than that is drawn smaller and nearer, along the same lines of sight from the camera, so it covers the same
+ * part of the screen.
  */
-private static void activePlacement(net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext context) {
-	Hologram active = HologramRenderer.active();
-	if (!Editor.isActive() || !HoloprintConfig.get().showHolograms || active == null || !active.visible() || active.sizeX() == 0) {
+private static void selectedPlacement(net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext context) {
+	Hologram selected = HologramRenderer.selected();
+	if (!HoloprintConfig.get().showHolograms || selected == null || !selected.visible() || selected.sizeX() == 0) {
 		return;
 	}
-	net.minecraft.core.BlockPos o = active.origin();
-	AABB box = new AABB(o.getX(), o.getY(), o.getZ(), o.getX() + active.sizeX(), o.getY() + active.sizeY(), o.getZ() + active.sizeZ()).inflate(0.03);
-	drawBox(context, box, ACTIVE_COLOR);
+	net.minecraft.core.BlockPos o = selected.origin();
+	AABB box = new AABB(o.getX(), o.getY(), o.getZ(), o.getX() + selected.sizeX(), o.getY() + selected.sizeY(), o.getZ() + selected.sizeZ()).inflate(0.03);
 	Vec3 cam = context.levelState().cameraRenderState.pos;
-	double cx = (box.minX + box.maxX) / 2.0 - cam.x, cy = box.maxY + 0.7 - cam.y, cz = (box.minZ + box.maxZ) / 2.0 - cam.z;
-	double distance = Math.sqrt(cx * cx + cy * cy + cz * cz);
-	// The name keeps a readable size from far away: it grows with the distance.
-	float scale = (float) Math.max(1.6, Math.min(12.0, distance / 10.0));
-	int index = HologramRenderer.all().indexOf(active);
-	net.minecraft.network.chat.Component name = net.minecraft.network.chat.Component.literal(io.github.dannygt97.holoprint.ui.panel.PlacementsPanel.nameOf(active, Math.max(0, index)));
+	float far = context.levelState().cameraRenderState.depthFar;
+	// the farthest corner decides how much everything is brought closer
+	double farthest = 0.0;
+	for (int i = 0; i < 8; i++) {
+		double x = (i & 1) == 0 ? box.minX : box.maxX, y = (i & 2) == 0 ? box.minY : box.maxY, z = (i & 4) == 0 ? box.minZ : box.maxZ;
+		farthest = Math.max(farthest, Math.sqrt((x - cam.x) * (x - cam.x) + (y - cam.y) * (y - cam.y) + (z - cam.z) * (z - cam.z)));
+	}
+	// Past the far plane nothing is drawn, and where the fog begins the gold turns into the colour of the sky, so a box farther than a bit more than half the
+	// render distance is brought to that distance (the same lines of sight, so the same place on the screen).
+	double limit = Math.min(far > 0 ? far * 0.9 : Double.MAX_VALUE, net.minecraft.client.Minecraft.getInstance().options.getEffectiveRenderDistance() * 16.0 * 0.55);
+	double k = farthest > limit ? limit / farthest : 1.0;
+	AABB drawn = k == 1.0 ? box : new AABB(cam.x + (box.minX - cam.x) * k, cam.y + (box.minY - cam.y) * k, cam.z + (box.minZ - cam.z) * k,
+		cam.x + (box.maxX - cam.x) * k, cam.y + (box.maxY - cam.y) * k, cam.z + (box.maxZ - cam.z) * k);
+	drawBox(context, drawn, ACTIVE_COLOR);
+	double cx = ((box.minX + box.maxX) / 2.0 - cam.x) * k, cy = (box.maxY + 0.7 - cam.y) * k, cz = ((box.minZ + box.maxZ) / 2.0 - cam.z) * k;
+	double distance = Math.sqrt(cx * cx + cy * cy + cz * cz) / k;
+	// The name keeps a readable size from far away: it grows with the distance (and the nearer it is drawn, the smaller it has to be to look the same).
+	float scale = (float) (Math.max(1.6, Math.min(12.0, distance / 10.0)) * k);
+	int index = HologramRenderer.all().indexOf(selected);
+	net.minecraft.network.chat.Component name = net.minecraft.network.chat.Component.literal(io.github.dannygt97.holoprint.ui.panel.PlacementsPanel.nameOf(selected, Math.max(0, index)));
 	com.mojang.blaze3d.vertex.PoseStack pose = context.poseStack();
 	pose.pushPose();
 	pose.translate(cx, cy, cz);

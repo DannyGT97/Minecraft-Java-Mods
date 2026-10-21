@@ -674,6 +674,12 @@ public final class HologramRenderer {
 		return highlighted;
 	}
 
+	/** The one placement that is selected: a finished one picked in the list, or else the one the editor works on. */
+	public static Hologram selected() {
+		Hologram picked = highlighted;
+		return picked != null && ALL.contains(picked) && picked.complete() ? picked : active;
+	}
+
 	/** Highlights {@code hologram}, or stops highlighting it when it already is. */
 	public static void toggleHighlight(Hologram hologram) {
 		highlighted = highlighted == hologram ? null : hologram;
@@ -682,6 +688,7 @@ public final class HologramRenderer {
 	/** Makes an existing placement the one the Move mode works on. */
 	public static void makeActive(Hologram hologram) {
 		if (ALL.contains(hologram) && !hologram.complete()) {
+			highlighted = null;
 			active = hologram;
 		}
 	}

@@ -236,7 +236,7 @@ public final class PlacementsPanel extends EditorPanel {
 
 		@Override
 		protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-			boolean current = hologram == HologramRenderer.active() || hologram == HologramRenderer.highlighted();
+			boolean current = hologram == HologramRenderer.selected();
 			int x = getX();
 			int y = getY();
 			graphics.fill(x, y, x + getWidth(), y + getHeight(), isHoveredOrFocused() ? 0x66FFFFFF : 0x55000000);
