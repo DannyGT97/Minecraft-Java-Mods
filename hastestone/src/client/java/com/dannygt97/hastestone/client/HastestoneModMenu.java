@@ -1,6 +1,6 @@
-package com.dstsoftware.hastestone.client;
+package com.dannygt97.hastestone.client;
 
-import com.dstsoftware.hastestone.client.gui.HastestoneConfigScreen;
+import com.dannygt97.hastestone.client.gui.HastestoneConfigScreen;
 import com.terraformersmc.modmenu.api.ConfigScreenFactory;
 import com.terraformersmc.modmenu.api.ModMenuApi;
 

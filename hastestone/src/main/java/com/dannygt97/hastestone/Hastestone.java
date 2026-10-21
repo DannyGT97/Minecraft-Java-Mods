@@ -1,6 +1,6 @@
-package com.dstsoftware.hastestone;
+package com.dannygt97.hastestone;
 
-import com.dstsoftware.hastestone.config.HastestoneConfig;
+import com.dannygt97.hastestone.config.HastestoneConfig;
 import net.fabricmc.api.ModInitializer;
 
 public final class Hastestone implements ModInitializer {

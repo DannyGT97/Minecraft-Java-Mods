@@ -1,6 +1,6 @@
-package com.dstsoftware.hastestone.mixin;
+package com.dannygt97.hastestone.mixin;
 
-import com.dstsoftware.hastestone.mining.StoneMining;
+import com.dannygt97.hastestone.mining.StoneMining;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

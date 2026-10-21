@@ -1,4 +1,4 @@
-package com.dstsoftware.hastestone.config;
+package com.dannygt97.hastestone.config;
 
 import java.io.IOException;
 import java.io.InputStream;

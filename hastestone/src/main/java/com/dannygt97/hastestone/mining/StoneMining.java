@@ -1,6 +1,6 @@
-package com.dstsoftware.hastestone.mining;
+package com.dannygt97.hastestone.mining;
 
-import com.dstsoftware.hastestone.config.HastestoneConfig;
+import com.dannygt97.hastestone.config.HastestoneConfig;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.effect.MobEffectInstance;

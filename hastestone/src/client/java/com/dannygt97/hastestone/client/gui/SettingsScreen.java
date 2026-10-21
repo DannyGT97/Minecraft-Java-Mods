@@ -1,4 +1,4 @@
-package com.dstsoftware.hastestone.client.gui;
+package com.dannygt97.hastestone.client.gui;
 
 import java.util.ArrayList;
 import java.util.List;

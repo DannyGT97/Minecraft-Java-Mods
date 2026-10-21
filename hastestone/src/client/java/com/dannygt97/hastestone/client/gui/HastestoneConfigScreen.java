@@ -1,10 +1,10 @@
-package com.dstsoftware.hastestone.client.gui;
+package com.dannygt97.hastestone.client.gui;
 
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
-import com.dstsoftware.hastestone.config.HastestoneConfig;
+import com.dannygt97.hastestone.config.HastestoneConfig;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
