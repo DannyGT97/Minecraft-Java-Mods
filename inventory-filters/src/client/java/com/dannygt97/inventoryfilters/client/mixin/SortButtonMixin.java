@@ -82,7 +82,7 @@ public abstract class SortButtonMixin extends Screen {
         }
         if (menu instanceof InventoryMenu) {
             inventoryfilters$presetButton = inventoryfilters$addButton(
-                theme.presetIcon("manage_presets"), theme.presetIcon("manage_presets"),
+                theme.presetIcon("manage_presets"), theme.selectedPresetIcon("manage_presets"),
                 Component.translatable("inventoryfilters.preset.tooltip"),
                 b -> minecraft.setScreenAndShow(new HotbarPresetsScreen((Screen) (Object) this))
             );

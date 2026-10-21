@@ -50,7 +50,7 @@ public final class HotbarPresetsScreen extends Screen {
 			int y = rowsTop + i * rowPitch;
 			IconButton saveButton = new IconButton(previewLeft + PREVIEW_WIDTH + 12, y + 4, 14,
 				Component.translatable("inventoryfilters.preset.save.tooltip"),
-				theme.presetIcon("save_preset"), theme.presetIcon("save_preset"), button -> {
+				theme.presetIcon("save_preset"), theme.selectedPresetIcon("save_preset"), button -> {
 				if (InventoryFiltersConfig.saveHotbarPreset(preset)) {
 					if (minecraft.player != null) minecraft.player.sendOverlayMessage(
 						Component.translatable("inventoryfilters.preset.saved", preset + 1));
@@ -62,7 +62,7 @@ public final class HotbarPresetsScreen extends Screen {
 			addRenderableWidget(saveButton);
 			IconButton loadButton = new IconButton(previewLeft + PREVIEW_WIDTH + 31, y + 4, 14,
 				Component.translatable("inventoryfilters.preset.load.tooltip"),
-				theme.presetIcon("load_preset"), theme.presetIcon("load_preset"), button -> loadPreset(preset));
+				theme.presetIcon("load_preset"), theme.selectedPresetIcon("load_preset"), button -> loadPreset(preset));
 			loadButton.setTooltip(net.minecraft.client.gui.components.Tooltip.create(
 				Component.translatable("inventoryfilters.preset.load.tooltip")));
 			loadButtons[i] = loadButton;

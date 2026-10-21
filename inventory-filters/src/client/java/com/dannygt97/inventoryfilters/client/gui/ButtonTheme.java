@@ -2,11 +2,7 @@ package com.dannygt97.inventoryfilters.client.gui;
 
 import net.minecraft.resources.Identifier;
 
-/**
- * The look of the sort/stack/transfer buttons. Each theme is a folder under textures/ holding the
- * four icons (sort, transfer, stack_down, stack_up), each in a normal and a hovered/selected
- * version.
- */
+/** Icon and theme selection for inventory and hotbar preset buttons. */
 public enum ButtonTheme {
 	LIGHT("light", "", "_blue"),
 	DARK("dark", "_dark", "_dark_selected");
@@ -34,9 +30,22 @@ public enum ButtonTheme {
 		return texture("icon_" + name + selectedSuffix);
 	}
 
-	/** Preset icons currently ship in the light asset set only. */
+	/** Normal preset button icon for this theme. */
 	public Identifier presetIcon(String name) {
-		return Identifier.fromNamespaceAndPath("inventoryfilters", "textures/light/icon_" + name + ".png");
+		return texture("icon_" + name + presetSuffix(name, false));
+	}
+
+	/** Hovered/selected preset button icon for this theme. */
+	public Identifier selectedPresetIcon(String name) {
+		return texture("icon_" + name + presetSuffix(name, true));
+	}
+
+	private String presetSuffix(String name, boolean selected) {
+		if (this == LIGHT) return selected ? "_selected" : "";
+		// The manager icons in the dark folder use the same suffixes as the light
+		// set; save/load icons include an explicit _dark suffix.
+		if ("manage_presets".equals(name)) return selected ? "_selected" : "";
+		return selected ? "_selected_dark" : "_dark";
 	}
 
 	private Identifier texture(String file) {
