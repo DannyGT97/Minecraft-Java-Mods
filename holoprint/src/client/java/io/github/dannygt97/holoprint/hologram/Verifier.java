@@ -520,14 +520,22 @@ public final class Verifier {
 				hologram.reopened(false);
 			}
 			// It has just been finished (the last block went in, or a Build ended): it says so, and stops being the one Move, R and M work on.
-			if (before != null && !wasComplete && made.isComplete() && !hologram.reopened() && !hologram.markedComplete()) {
+			if ((before != null || hologram.assumedBuilt()) && !wasComplete && made.isComplete() && !hologram.reopened() && !hologram.markedComplete()) {
 				if (mc.player != null) {
-					mc.player.sendSystemMessage(Component.translatable("holoprint.message.placement_complete", hologram.displayName()));
+					Component finished = Component.translatable("holoprint.message.placement_complete", hologram.displayName()).withStyle(net.minecraft.ChatFormatting.GREEN);
+					mc.player.sendSystemMessage(finished);
+					mc.gui.hud.setOverlayMessage(finished, false);
 				}
 				if (hologram == HologramRenderer.active() && !hologram.locked()) {
 					HologramRenderer.deselect(hologram);
 					io.github.dannygt97.holoprint.placement.Editor.activePlacementChanged(mc);
 				}
+			} else if (wasComplete && !made.isComplete() && !hologram.markedComplete() && !hologram.reopened() && made.matches(hologram.origin(), hologram.quarterTurns(), hologram.mirrored())
+				&& made.missing + made.wrongCount + made.wrongStateCount > 0 && mc.player != null) {
+				// It was finished and a block has been taken away or changed: it is not finished any more, and it says so (it is drawn again, only what is wrong).
+				Component open = Component.translatable("holoprint.message.placement_open", hologram.displayName(), made.missing + made.wrongCount + made.wrongStateCount).withStyle(net.minecraft.ChatFormatting.YELLOW);
+				mc.player.sendSystemMessage(open);
+				mc.gui.hud.setOverlayMessage(open, false);
 			}
 		}
 		return done;

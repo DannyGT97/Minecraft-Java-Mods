@@ -83,6 +83,11 @@ public final class MaterialsPanel extends EditorPanel {
 		button(host, x + PAD + 3 * (w + 4), footerY, w, Component.translatable("holoprint.materials.export"), this::export);
 	}
 
+	/** The blocks of a row the client could not check (they are in chunks it does not have): neither placed nor missing as far as it can tell. */
+	private static long unchecked(Verifier.Row row) {
+		return Math.max(0, row.needed() - row.placed() - row.missing());
+	}
+
 	private void export() {
 		Minecraft mc = Minecraft.getInstance();
 		Verifier.Result result = hologram == null ? null : hologram.verification();
@@ -93,7 +98,7 @@ public final class MaterialsPanel extends EditorPanel {
 		text.append(hologram.displayName()).append('\n');
 		for (Verifier.Row row : result.rows) {
 			text.append(row.name().getString()).append(": ").append(row.needed()).append(" needed, ").append(row.placed()).append(" placed, ")
-				.append(row.missing()).append(" missing\n");
+				.append(row.missing()).append(" missing").append(unchecked(row) > 0 ? ", " + unchecked(row) + " unchecked (not loaded)" : "").append('\n');
 		}
 		String base = hologram.displayName().isBlank() ? "materials" : hologram.displayName().replaceAll("[^A-Za-z0-9 _.-]", "_");
 		Path file = SchematicFolder.path().resolve(base + "_materials.txt");
