@@ -50,6 +50,7 @@ public class FellingHandler {
 	private static final int MAX_LEAVES = 1024;
 	private static final int MAX_TREE_DECORATIONS = 1024;
 	private static final int MAX_NETHER_CANOPY = 1024;
+	private static final int MAX_ORPHAN_GROUP = 200;
 	private static final float[] NETHER_FUNGUS_DROP_CHANCES = {0.05F, 0.0625F, 0.083333336F, 0.1F};
 	private static final RandomSource RANDOM = RandomSource.create();
 	// Saplings wait this long (half a second) before being planted so the swing that just felled the
@@ -144,6 +145,17 @@ public class FellingHandler {
 			return;
 		}
 
+		// A log below the cut that was held up only by the logs being felled (a leaning mangrove or
+		// acacia branch, a root-side log) would be left hanging in the air; it goes with the tree.
+		Set<BlockPos> orphans = collectOrphanLogs(serverLevel, logs, canopy, pos, logBlock);
+		if (!orphans.isEmpty()) {
+			logs.addAll(orphans);
+			if (!nether) {
+				// The canopy of a branch that was left hanging goes with it.
+				canopy.addAll(collectLeaves(serverLevel, orphans, pos));
+			}
+		}
+
 		// Nothing is dropped for a creative player, same as breaking blocks by hand.
 		boolean drop = !player.isCreative();
 		int logIndex = 0;
@@ -235,6 +247,66 @@ public class FellingHandler {
 				if (matches.test(neighbor) && logs.add(neighbor)) queue.add(neighbor);
 			}
 		}
+	}
+
+	// Logs of the same tree that stay behind below the cut but would float once the felled logs are
+	// gone: connected to the cut only, with nothing under any of them. Each group of leftover logs is
+	// followed (up to a size that no stump reaches) and kept when any of its logs rests on something
+	// solid; only a group with nothing under it at all is added to the felling.
+	private static Set<BlockPos> collectOrphanLogs(
+		final ServerLevel level, final Set<BlockPos> felled, final Set<BlockPos> canopy, final BlockPos origin, final Block logBlock
+	) {
+		Identifier id = BuiltInRegistries.BLOCK.getKey(logBlock);
+		String family = id.getNamespace().equals("minecraft") ? woodFamily(id.getPath()) : "";
+		boolean acacia = family.equals("acacia");
+		boolean mangrove = family.equals("mangrove");
+		Predicate<BlockPos> candidate = p -> !felled.contains(p) && !p.equals(origin) && level.getBlockState(p).is(BlockTags.LOGS)
+			&& sameWoodFamily(logBlock, level.getBlockState(p).getBlock()) && !PlayerPlacedBlocks.isPlaced(level, p);
+
+		Set<BlockPos> orphans = new HashSet<>();
+		Set<BlockPos> visited = new HashSet<>();
+		List<BlockPos> starts = new ArrayList<>(logNeighborsOf(origin, acacia, mangrove));
+		for (BlockPos log : felled) {
+			starts.addAll(logNeighborsOf(log, acacia, mangrove));
+		}
+		for (BlockPos removed : canopy) {
+			starts.addAll(neighborsOf(removed, true));
+		}
+		for (BlockPos start : starts) {
+			if (visited.contains(start) || !candidate.test(start)) {
+				continue;
+			}
+			Set<BlockPos> group = new HashSet<>();
+			Deque<BlockPos> queue = new ArrayDeque<>();
+			group.add(start);
+			queue.add(start);
+			visited.add(start);
+			while (!queue.isEmpty() && group.size() <= MAX_ORPHAN_GROUP) {
+				BlockPos current = queue.poll();
+				for (BlockPos next : logNeighborsOf(current, acacia, mangrove)) {
+					if (candidate.test(next) && group.add(next)) {
+						visited.add(next);
+						queue.add(next);
+					}
+				}
+			}
+			// The group is held up if any of its logs rests on something solid that is not one of its
+			// own logs and is not about to be removed with the tree (roots and leaves hold nothing up).
+			boolean supported = false;
+			for (BlockPos member : group) {
+				BlockPos belowPos = member.below();
+				BlockState below = level.getBlockState(belowPos);
+				if (!group.contains(belowPos) && !below.isAir() && below.getFluidState().isEmpty() && !below.is(BlockTags.LEAVES)
+					&& !canopy.contains(belowPos) && !felled.contains(belowPos)) {
+					supported = true;
+					break;
+				}
+			}
+			if (!supported && group.size() <= MAX_ORPHAN_GROUP) {
+				orphans.addAll(group);
+			}
+		}
+		return orphans;
 	}
 
 	private static List<BlockPos> logNeighborsOf(final BlockPos pos, final boolean acacia, final boolean mangrove) {
