@@ -142,6 +142,8 @@ public final class HologramBuilder {
 		if (mc.level == null || !SelectionActions.hasCommandAccess(mc) || busy || commandBuild && SelectionActions.pendingCommands() > 0) {
 			return false;
 		}
+		// A placement that is still following the pointer stays where it is: it would walk off from what it builds and its outline would hang over nothing.
+		Editor.pinPlacement(hologram);
 		if (withServer(mc)) {
 			return buildDirect(mc, mc.getSingleplayerServer(), hologram, clear);
 		}
@@ -157,6 +159,8 @@ public final class HologramBuilder {
 	private static boolean buildDirect(Minecraft mc, MinecraftServer server, Hologram hologram, Area clear) {
 		ResourceKey<Level> dimension = mc.level.dimension();
 		BlockPos origin = hologram.origin();
+		int builtTurns = hologram.quarterTurns();
+		boolean builtMirror = hologram.mirrored();
 		int sizeX = hologram.sizeX(), sizeZ = hologram.sizeZ();
 		int[] cells = hologram.solidCells();
 		long clearing = clear == null ? 0 : (long) clear.sizeX() * clear.sizeY() * clear.sizeZ();
@@ -167,6 +171,7 @@ public final class HologramBuilder {
 		Editor.message(mc, Component.translatable("holoprint.message.building", cells.length));
 		long[] cursor = {0};
 		long[] placed = {0};
+		long[] outside = {0};
 		Runnable[] step = new Runnable[1];
 		step[0] = () -> {
 			ServerLevel level = server.isRunning() ? server.getLevel(dimension) : null;
@@ -208,6 +213,10 @@ public final class HologramBuilder {
 				}
 				int x = cell % sizeX, z = (cell / sizeX) % sizeZ, y = cell / (sizeX * sizeZ);
 				at.set(origin.getX() + x, origin.getY() + y, origin.getZ() + z);
+				if (level.isOutsideBuildHeight(at)) {
+					outside[0]++;
+					continue;
+				}
 				if (level.setBlock(at, state, FLAGS)) {
 					placed[0]++;
 				}
@@ -240,8 +249,8 @@ public final class HologramBuilder {
 			}
 			busy = false;
 			mc.execute(() -> {
-				hologram.markBuilt();
-				Editor.message(mc, Component.translatable("holoprint.message.built", placed[0]));
+				hologram.markBuilt(origin, builtTurns, builtMirror);
+				Editor.message(mc, outside[0] > 0 ? Component.translatable("holoprint.message.built_outside", placed[0], outside[0]) : Component.translatable("holoprint.message.built", placed[0]));
 			});
 		};
 		server.execute(step[0]);

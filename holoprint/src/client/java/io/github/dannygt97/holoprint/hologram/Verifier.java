@@ -61,6 +61,8 @@ public final class Verifier {
 		/** World positions of the right block, facing right, whose setting differs (repeater delay, comparator mode, note, inverted sensor). */
 		public volatile long[] wrongSetting = new long[0];
 		public volatile long wrongSettingCount;
+		/** Blocks of the hologram above or below the height of the world: nothing can be built there, so they are left out of every count. */
+		public volatile long outside;
 		/** World positions of blocks where the hologram asks for nothing (only looked for when the option is on). */
 		public final long[] extra;
 		public final List<Row> rows;
@@ -145,6 +147,7 @@ public final class Verifier {
 		final LongArrayList wrongState = new LongArrayList();
 		final LongArrayList wrongSetting = new LongArrayList();
 		long wrongSettingCount;
+		long outside;
 		final LongArrayList extra = new LongArrayList();
 		final Map<Object, long[]> counts = new LinkedHashMap<>();
 		long needed, placed, missing, wrongCount, wrongStateCount, extraCount, unloaded;
@@ -423,6 +426,12 @@ public final class Verifier {
 				}
 				continue;
 			}
+			if (pos.getY() < mc.level.getMinY() || pos.getY() >= mc.level.getMaxY()) {
+				// out of the world: it can never be built, and it must not keep the placement from being finished (nor keep its outline)
+				job.outside++;
+				job.built.set(i);
+				continue;
+			}
 			int items = itemsNeeded(wanted);
 			long[] count = items == 0 ? null : job.counts.computeIfAbsent(keyOf(wanted), k -> new long[3]);
 			job.needed += items;
@@ -483,6 +492,7 @@ public final class Verifier {
 				rows, job.needed, job.placed, job.missing, job.wrongCount, job.wrongStateCount, job.extraCount, job.unloaded, now);
 			made.wrongSetting = job.wrongSetting.toLongArray();
 			made.wrongSettingCount = job.wrongSettingCount;
+			made.outside = job.outside;
 			Result before = hologram.verification();
 			boolean wasComplete = before != null && before.matches(job.origin, job.turns, job.mirrored) && before.isComplete();
 			hologram.verification(made);

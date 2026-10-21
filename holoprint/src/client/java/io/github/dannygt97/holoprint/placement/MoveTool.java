@@ -122,6 +122,17 @@ final class MoveTool implements EditorTool {
 		restorable = true;
 	}
 
+	/** The placement stops following the pointer and stays where it is (a Build starts: it must not walk off from what it builds). */
+	void pin(Hologram hologram) {
+		if (state == State.FOLLOW && carried == hologram) {
+			state = State.PINNED;
+			hologram.moving(false);
+			carried = null;
+			restorable = false;
+			io.github.dannygt97.holoprint.ui.HotbarTools.released(true);
+		}
+	}
+
 	@Override
 	public boolean escape(Minecraft mc) {
 		// A placement picked up and carried goes back where it was; a new one (just loaded) has nowhere to go back to.

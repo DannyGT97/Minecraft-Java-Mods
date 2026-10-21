@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.github.dannygt97.holoprint.freecam.Freecam;
+import io.github.dannygt97.holoprint.hologram.Hologram;
 import io.github.dannygt97.holoprint.hologram.HologramRenderer;
 import io.github.dannygt97.holoprint.ui.EditorScreen;
 import io.github.dannygt97.holoprint.ui.HotbarTools;
@@ -142,6 +143,11 @@ public final class Editor {
 	/** Escape, while the editor is on with no window open: true when it cancelled something (so the pause menu does not open). */
 	public static boolean escape(Minecraft mc) {
 		return active && mc.gui.screen() == null && tool(mode).escape(mc);
+	}
+
+	/** A Build of {@code hologram} is starting: if it is being carried, it is put down where it is. */
+	public static void pinPlacement(Hologram hologram) {
+		MOVE.pin(hologram);
 	}
 
 	public static void onPrimaryClick() {

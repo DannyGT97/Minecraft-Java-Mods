@@ -90,8 +90,9 @@ public final class Hologram {
 	private volatile Object[] builtBy;
 
 	/** Called when a Build of this placement ended: the blocks it wrote are in the world even where the client has not got them yet. */
-	public void markBuilt() {
-		builtBy = new Object[] {origin, quarterTurns, mirrored};
+	public void markBuilt(BlockPos at, int turns, boolean mirror) {
+		// where the Build wrote it, not where the placement is now (it may have been moved since)
+		builtBy = new Object[] {at, turns & 3, mirror};
 		builtEpoch++;
 	}
 

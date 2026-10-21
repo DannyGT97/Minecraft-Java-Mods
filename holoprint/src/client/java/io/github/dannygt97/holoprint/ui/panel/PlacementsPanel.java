@@ -195,6 +195,12 @@ public final class PlacementsPanel extends EditorPanel {
 		}
 	}
 
+	/** How many blocks of the placement are above or below the height of the world (they cannot be built), as of the last check. */
+	private static long outside(Hologram hologram) {
+		var result = hologram.verification();
+		return result != null && result.matches(hologram.origin(), hologram.quarterTurns(), hologram.mirrored()) ? result.outside : 0;
+	}
+
 	/**
 	 * How many blocks of the placement could not be checked because the client does not have that part of the world (it is far from the player, though the free
 	 * camera can look at it), when everything that could be checked is built; 0 otherwise.
@@ -220,6 +226,8 @@ public final class PlacementsPanel extends EditorPanel {
 				setTooltip(Tooltip.create(Component.translatable("holoprint.placements.tip_complete_row")));
 			} else if (unchecked(hologram) > 0) {
 				setTooltip(Tooltip.create(Component.translatable("holoprint.placements.tip_unchecked", unchecked(hologram))));
+			} else if (outside(hologram) > 0) {
+				setTooltip(Tooltip.create(Component.translatable("holoprint.placements.tip_outside", outside(hologram))));
 			}
 		}
 
@@ -242,10 +250,11 @@ public final class PlacementsPanel extends EditorPanel {
 			graphics.text(font, detail, x + 6, y + 18, 0xFF909090, false);
 			// what state it is in, after the details: finished (green) or opened again (yellow)
 			long unchecked = done ? 0 : unchecked(hologram);
-			if (done || hologram.reopened() || unchecked > 0) {
+			long outside = outside(hologram);
+			if (done || hologram.reopened() || unchecked > 0 || outside > 0) {
 				int statusX = x + 6 + font.width(detail) + 10;
 				String status = (done ? Component.translatable("holoprint.placements.status_complete") : hologram.reopened() ? Component.translatable("holoprint.placements.status_reopened")
-					: Component.translatable("holoprint.placements.status_unchecked", unchecked)).getString();
+					: unchecked > 0 ? Component.translatable("holoprint.placements.status_unchecked", unchecked) : Component.translatable("holoprint.placements.status_outside", outside)).getString();
 				// only when it fits whole: a cut word says nothing (the row is dimmed and its tooltip tells it anyway)
 				if (statusX + font.width(status) <= getX() + getWidth() - 4) {
 					graphics.text(font, status, statusX, y + 18, done ? 0xFF55FF55 : 0xFFFFD166, false);
