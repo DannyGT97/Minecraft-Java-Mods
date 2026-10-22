@@ -1,0 +1,21 @@
+{
+  "hastemine.config.title": "Hastemine Settings",
+  "hastemine.config.category.general": "General",
+  "hastemine.config.category.general.desc": "Main switch of the mod.",
+  "hastemine.config.category.deepslate": "Deepslate",
+  "hastemine.config.category.deepslate.desc": "Instant mining with Haste II and mining at stone speed.",
+  "hastemine.config.category.cobblestone": "Cobblestone",
+  "hastemine.config.category.cobblestone.desc": "Instant mining with Haste II.",
+  "hastemine.config.enabled": "Hastemine: %s",
+  "hastemine.config.enabled.tooltip": "Master switch. When OFF, mining is exactly vanilla.",
+  "hastemine.config.deepslate_instant": "Deepslate instant with Haste II: %s",
+  "hastemine.config.deepslate_instant.tooltip": "With Haste II (a beacon, a potion...), deepslate breaks at once whenever stone would with the same pickaxe and enchantments.",
+  "hastemine.config.deepslate_stone_speed": "Deepslate at stone speed: %s",
+  "hastemine.config.deepslate_stone_speed.tooltip": "Deepslate takes exactly as long to mine as stone does with the same tool, with or without a beacon. Wood, stone, iron, diamond and netherite pickaxes each keep their own stone timing.",
+  "hastemine.config.cobblestone_instant": "Cobblestone instant with Haste II: %s",
+  "hastemine.config.cobblestone_instant.tooltip": "With Haste II, cobblestone breaks at once whenever stone would, as in Bedrock Edition. Without this, Java cobblestone is harder than stone and never breaks instantly.",
+  "hastemine.config.category.logs": "Logs",
+  "hastemine.config.category.logs.desc": "Bedrock-style Haste for Overworld logs.",
+  "hastemine.config.logs_haste": "Logs with Bedrock Haste: %s",
+  "hastemine.config.logs_haste.tooltip": "Overworld logs and stripped logs are mined with Bedrock Edition's Haste scaling: Haste level n speeds mining up by (1 + 0.2n) as in Java, and by another 1.2^n on top. With Haste II that is about 2.02x instead of 1.4x, enough for a well-enchanted axe to break logs at once. Wood blocks, Nether stems and bamboo are not affected."
+}

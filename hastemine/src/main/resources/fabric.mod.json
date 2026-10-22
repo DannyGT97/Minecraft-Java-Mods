@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "hastemine",
+  "version": "${version}",
+  "name": "Hastemine",
+  "description": "Mining tweaks for Haste: instant deepslate and cobblestone with Haste II like stone, deepslate at stone speed, and Bedrock-style Haste scaling for Overworld logs.",
+  "authors": ["DannyGT97"],
+  "license": "CC0-1.0",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.dannygt97.hastemine.Hastemine"],
+    "modmenu": ["com.dannygt97.hastemine.client.HastemineModMenu"]
+  },
+  "mixins": ["hastemine.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}

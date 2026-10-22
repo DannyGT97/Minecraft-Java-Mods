@@ -16,12 +16,12 @@ Adds dynamic visual lighting: light-emitting items illuminate the surroundings w
 - **Settings:** configure the player's lights, other entities, held or dropped light sources, and special effects through Mod Menu or `config/dynamiclights.json`.
 - **Play:** works in singleplayer and while connected to servers.
 
-### [Hastestone](hastestone/README.md)
+### [Hastemine](hastemine/README.md)
 
-Changes the mining speed of selected blocks so deepslate can behave more like stone. It can also enable a similar effect for cobblestone.
+Changes the mining speed of selected blocks so deepslate can behave more like stone, and gives Overworld logs Bedrock-style Haste scaling. It can also enable a similar effect for cobblestone. Formerly Hastestone.
 
-- **Features:** instant deepslate mining with Haste II; deepslate mined at stone speed with any pickaxe; instant cobblestone mining with Haste II.
-- **Settings:** each behavior can be enabled separately through Mod Menu or `config/hastestone.properties`.
+- **Features:** instant deepslate mining with Haste II; deepslate mined at stone speed with any pickaxe; instant cobblestone mining with Haste II; Bedrock-style Haste scaling for Overworld logs, so Haste II and a good axe break them at once.
+- **Settings:** each behavior can be enabled separately through Mod Menu or `config/hastemine.properties`.
 - **Type:** changes mining mechanics. The server controls mining results in multiplayer; compatible settings are needed on the client and server.
 - **Online play:** follow the warning above and the server's rules.
 
@@ -94,12 +94,12 @@ Añade iluminación dinámica visual: los objetos luminosos iluminan el entorno 
 - **Ajustes:** configura las luces del jugador y otras entidades, los objetos luminosos en la mano o en el suelo y varios efectos especiales desde Mod Menu o `config/dynamiclights.json`.
 - **Uso:** funciona en mundos individuales y al conectarse a servidores.
 
-### [Hastestone](hastestone/README.md)
+### [Hastemine](hastemine/README.md)
 
-Cambia la velocidad de minado de algunos bloques para que la deepslate se comporte más como la piedra. También permite activar un efecto similar para la cobblestone.
+Cambia la velocidad de minado de algunos bloques para que la deepslate se comporte más como la piedra y da a los troncos del Overworld el escalado de Prisa de Bedrock. También permite activar un efecto similar para la cobblestone. Antes se llamaba Hastestone.
 
-- **Funciones:** deepslate instantánea con Prisa II; deepslate a velocidad de piedra con cualquier pico; cobblestone instantánea con Prisa II.
-- **Ajustes:** cada comportamiento se puede activar por separado desde Mod Menu o `config/hastestone.properties`.
+- **Funciones:** deepslate instantánea con Prisa II; deepslate a velocidad de piedra con cualquier pico; cobblestone instantánea con Prisa II; escalado de Prisa de Bedrock en los troncos del Overworld, de modo que Prisa II y un buen hacha los rompen de golpe.
+- **Ajustes:** cada comportamiento se puede activar por separado desde Mod Menu o `config/hastemine.properties`.
 - **Tipo:** cambia la mecánica de minado. El servidor controla los resultados en multijugador; el cliente y el servidor necesitan ajustes compatibles.
 - **Juego en línea:** sigue el aviso anterior y las reglas del servidor.
 
