@@ -20,7 +20,7 @@
   "inventoryfilters.config.category.sorting": "Ordenación",
   "inventoryfilters.config.category.sorting.desc": "Cómo ordena los objetos el botón de ordenar.",
   "inventoryfilters.config.category.hotbar": "Hotbar",
-  "inventoryfilters.config.category.hotbar.desc": "Si la hotbar participa al ordenar, mover y apilar.",
+  "inventoryfilters.config.category.hotbar.desc": "Si la hotbar participa al ordenar y mover. Apilar en el contenedor siempre la incluye.",
   "inventoryfilters.config.category.appearance": "Apariencia",
   "inventoryfilters.config.category.appearance.desc": "Cómo se ven los botones de ordenar y apilar.",
   "inventoryfilters.config.category.hotbar_presets": "Presets de hotbar",

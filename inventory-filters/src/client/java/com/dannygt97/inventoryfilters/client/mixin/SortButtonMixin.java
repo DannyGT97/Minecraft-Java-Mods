@@ -148,7 +148,9 @@ public abstract class SortButtonMixin extends Screen {
             SortButtonHelper.showServerRequired();
             return;
         }
-        ClientPlayNetworking.send(new ContainerTransferPayload(toContainer, stackOnly, InventoryFiltersConfig.isIncludeHotbar()));
+        // "Stack into container" always takes the hotbar too; the setting only governs the other actions.
+        boolean includeHotbar = (toContainer && stackOnly) || InventoryFiltersConfig.isIncludeHotbar();
+        ClientPlayNetworking.send(new ContainerTransferPayload(toContainer, stackOnly, includeHotbar));
         inventoryfilters$markSelected(column[index]);
     }
 
