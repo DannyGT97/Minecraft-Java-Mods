@@ -14,8 +14,14 @@
   "hastemine.config.deepslate_stone_speed.tooltip": "La deepslate tarda exactamente lo mismo en minarse que la piedra con la misma herramienta, con o sin beacon. Cada pico (madera, piedra, hierro, diamante, netherite) mantiene su propio tiempo de piedra.",
   "hastemine.config.cobblestone_instant": "Cobblestone instantánea con Prisa II: %s",
   "hastemine.config.cobblestone_instant.tooltip": "Con Prisa II, la cobblestone se rompe de golpe siempre que la piedra lo haría, como en Bedrock Edition. Sin esto, la cobblestone de Java es más dura que la piedra y nunca se rompe al instante.",
+  "hastemine.config.category.slabs": "Losas",
+  "hastemine.config.category.slabs.desc": "Minado instantáneo con Prisa II de las losas que se rompen con pico.",
+  "hastemine.config.slabs_instant": "Losas instantáneas con Prisa II: %s",
+  "hastemine.config.slabs_instant.tooltip": "Con Prisa II, cualquier losa que se mine con pico (piedra, cobblestone, ladrillo, andesita, diorita, granito, arenisca, deepslate, blackstone, cobre...) se rompe de golpe siempre que la piedra lo haría con el mismo pico y encantamientos. Las losas de madera no cambian.",
   "hastemine.config.category.logs": "Troncos",
-  "hastemine.config.category.logs.desc": "Prisa al estilo Bedrock para los troncos del Overworld.",
+  "hastemine.config.category.logs.desc": "Minado instantáneo con Prisa II y Prisa al estilo Bedrock para los troncos del Overworld.",
+  "hastemine.config.logs_instant": "Troncos instantáneos con Prisa II: %s",
+  "hastemine.config.logs_instant.tooltip": "Con Prisa II (o más) y cualquier hacha en la mano, los troncos y troncos pelados del Overworld se rompen de golpe. No afecta a los bloques de madera, los troncos del Nether ni el bambú.",
   "hastemine.config.logs_haste": "Troncos con Prisa de Bedrock: %s",
   "hastemine.config.logs_haste.tooltip": "Los troncos y troncos pelados del Overworld se minan con el escalado de Prisa de Bedrock Edition: el nivel n de Prisa acelera el minado (1 + 0,2n) como en Java y, además, 1,2^n por encima. Con Prisa II son unas 2,02 veces en vez de 1,4, suficiente para que un hacha bien encantada rompa los troncos de golpe. No afecta a los bloques de madera, los troncos del Nether ni el bambú."
 }

@@ -36,6 +36,22 @@ public final class HastemineConfigScreen extends SettingsScreen {
 				Component.translatable("hastemine.config.category.cobblestone.desc"),
 				List.of(toggle("cobblestone_instant", HastemineConfig::isCobblestoneInstantWithHaste2,
 					HastemineConfig::setCobblestoneInstantWithHaste2, HastemineConfig::isEnabled))
+			),
+			new Category(
+				Component.translatable("hastemine.config.category.slabs"),
+				Component.translatable("hastemine.config.category.slabs.desc"),
+				List.of(toggle("slabs_instant", HastemineConfig::isSlabsInstantWithHaste2,
+					HastemineConfig::setSlabsInstantWithHaste2, HastemineConfig::isEnabled))
+			),
+			new Category(
+				Component.translatable("hastemine.config.category.logs"),
+				Component.translatable("hastemine.config.category.logs.desc"),
+				List.of(
+					toggle("logs_instant", HastemineConfig::isLogsInstantWithHaste2,
+						HastemineConfig::setLogsInstantWithHaste2, HastemineConfig::isEnabled),
+					toggle("logs_haste", HastemineConfig::isLogsBedrockHaste,
+						HastemineConfig::setLogsBedrockHaste, HastemineConfig::isEnabled)
+				)
 			)
 		);
 	}

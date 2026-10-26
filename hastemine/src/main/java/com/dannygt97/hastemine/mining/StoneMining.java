@@ -6,6 +6,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
@@ -32,8 +33,17 @@ public final class StoneMining {
 		if (vanilla >= 1.0F || !HastemineConfig.isEnabled()) {
 			return vanilla;
 		}
-		if (HastemineConfig.isLogsBedrockHaste() && isOverworldLog(state)) {
-			return vanilla * bedrockHasteBonus(player);
+		if (isOverworldLog(state)) {
+			// With Haste II and an axe, logs go at once (when the option is on); otherwise Bedrock's extra Haste scaling may still apply.
+			if (HastemineConfig.isLogsInstantWithHaste2() && hasHasteTwo(player) && player.getMainHandItem().is(ItemTags.AXES)) {
+				return 1.0F;
+			}
+			return HastemineConfig.isLogsBedrockHaste() ? vanilla * bedrockHasteBonus(player) : vanilla;
+		}
+		if (HastemineConfig.isSlabsInstantWithHaste2() && state.is(BlockTags.SLABS) && state.is(BlockTags.MINEABLE_WITH_PICKAXE)) {
+			// Any slab broken with a pickaxe (not the wooden ones) goes at once with Haste II whenever stone would with this tool.
+			float stone = Blocks.STONE.defaultBlockState().getDestroyProgress(player, level, pos);
+			return stone >= 1.0F && hasHasteTwo(player) ? stone : vanilla;
 		}
 		boolean deepslate = state.is(Blocks.DEEPSLATE);
 		boolean cobblestone = state.is(Blocks.COBBLESTONE);

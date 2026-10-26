@@ -20,6 +20,8 @@ public final class HastemineConfig {
 	private static final String DEEPSLATE_STONE_SPEED_KEY = "deepslateAtStoneSpeed";
 	private static final String COBBLESTONE_INSTANT_KEY = "cobblestoneInstantWithHaste2";
 	private static final String LOGS_HASTE_KEY = "logsBedrockHaste";
+	private static final String LOGS_INSTANT_KEY = "logsInstantWithHaste2";
+	private static final String SLABS_INSTANT_KEY = "slabsInstantWithHaste2";
 	private static final Properties VALUES = new Properties();
 	private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("hastemine.properties");
 	/** The file this mod used under its old name, Hastestone: read once when there is no new file yet. */
@@ -43,6 +45,8 @@ public final class HastemineConfig {
 			VALUES.putIfAbsent(DEEPSLATE_STONE_SPEED_KEY, "false");
 			VALUES.putIfAbsent(COBBLESTONE_INSTANT_KEY, "false");
 			VALUES.putIfAbsent(LOGS_HASTE_KEY, "true");
+			VALUES.putIfAbsent(LOGS_INSTANT_KEY, "false");
+			VALUES.putIfAbsent(SLABS_INSTANT_KEY, "false");
 			loaded = true;
 			save();
 		} catch (IOException exception) {
@@ -75,6 +79,24 @@ public final class HastemineConfig {
 		return get(LOGS_HASTE_KEY);
 	}
 
+	/** Slabs that are mined with a pickaxe (stone, cobblestone, bricks, andesite, diorite, sandstone...) break at once with Haste II whenever stone would. */
+	public static synchronized boolean isSlabsInstantWithHaste2() {
+		return get(SLABS_INSTANT_KEY);
+	}
+
+	public static synchronized void setSlabsInstantWithHaste2(boolean value) {
+		set(SLABS_INSTANT_KEY, value);
+	}
+
+	/** Overworld logs break at once with Haste II and any axe in hand. */
+	public static synchronized boolean isLogsInstantWithHaste2() {
+		return get(LOGS_INSTANT_KEY);
+	}
+
+	public static synchronized void setLogsInstantWithHaste2(boolean value) {
+		set(LOGS_INSTANT_KEY, value);
+	}
+
 	public static synchronized void setEnabled(boolean value) {
 		set(ENABLED_KEY, value);
 	}
@@ -103,6 +125,8 @@ public final class HastemineConfig {
 		VALUES.setProperty(DEEPSLATE_STONE_SPEED_KEY, "false");
 		VALUES.setProperty(COBBLESTONE_INSTANT_KEY, "false");
 		VALUES.setProperty(LOGS_HASTE_KEY, "true");
+		VALUES.setProperty(LOGS_INSTANT_KEY, "false");
+		VALUES.setProperty(SLABS_INSTANT_KEY, "false");
 		save();
 	}
 
