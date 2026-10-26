@@ -3,7 +3,7 @@
   "id": "gameplaytweaks",
   "version": "${version}",
   "name": "Gameplay Tweaks",
-  "description": "Client-side visual options and reach-around block placement.",
+  "description": "Client-side visual options, reach-around block placement and a mob-spawn light mesh.",
   "authors": ["dannygt97"],
   "license": "MIT",
   "environment": "client",

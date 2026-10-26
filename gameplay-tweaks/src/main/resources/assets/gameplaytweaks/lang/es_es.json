@@ -3,12 +3,14 @@
   "gameplaytweaks.config.category.fog": "Niebla",
   "gameplaytweaks.config.category.fog.desc": "Desactiva la niebla del terreno por dimensión.",
   "gameplaytweaks.config.category.lighting": "Iluminación",
-  "gameplaytweaks.config.category.lighting.desc": "Ajusta el brillo del mundo en el cliente.",
+  "gameplaytweaks.config.category.lighting.desc": "Ajusta el brillo del mundo en el cliente y muestra dónde pueden aparecer mobs.",
   "gameplaytweaks.config.category.gameplay": "Jugabilidad",
   "gameplaytweaks.config.category.gameplay.desc": "Asistencia opcional para colocar bloques.",
   "gameplaytweaks.config.fog.overworld": "Niebla del Overworld: %s",
   "gameplaytweaks.config.fog.nether": "Niebla del Nether: %s",
   "gameplaytweaks.config.fog.end": "Niebla del End: %s",
   "gameplaytweaks.config.fullbright": "Brillo máximo: %s",
+  "gameplaytweaks.config.light_mesh": "Malla de luz para aparición de mobs: %s",
+  "gameplaytweaks.config.light_mesh_opacity": "Opacidad de la malla de luz: %s",
   "gameplaytweaks.config.bridging": "Bridging al estilo Bedrock: %s"
 }

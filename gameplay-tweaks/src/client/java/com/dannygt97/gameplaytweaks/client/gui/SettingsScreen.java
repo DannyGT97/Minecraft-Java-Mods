@@ -23,6 +23,24 @@ import net.minecraft.util.FormattedCharSequence;
 public class SettingsScreen extends Screen {
 	/** One button of a category; `active` greys it out (for instance while the mod is switched off). */
 	public record Option(Supplier<Component> label, Runnable onPress, BooleanSupplier active) {
+		/** A button that steps through {@code values} (percentages, say) each time it is pressed; the current one is shown after the label. */
+		public static Option cycle(String key, java.util.function.IntSupplier getter, java.util.function.IntConsumer setter, int[] values, BooleanSupplier active) {
+			return new Option(
+				() -> Component.translatable(key, getter.getAsInt() + "%"),
+				() -> {
+					int next = values[0];
+					for (int i = 0; i < values.length; i++) {
+						if (values[i] > getter.getAsInt()) {
+							next = values[i];
+							break;
+						}
+					}
+					setter.accept(next);
+				},
+				active
+			);
+		}
+
 		public static Option toggle(String key, BooleanSupplier getter, Consumer<Boolean> setter, BooleanSupplier active) {
 			return new Option(
 				() -> Component.translatable(key, Component.translatable(getter.getAsBoolean() ? "options.on" : "options.off")

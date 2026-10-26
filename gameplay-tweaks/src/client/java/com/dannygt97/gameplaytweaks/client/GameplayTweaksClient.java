@@ -7,5 +7,6 @@ public final class GameplayTweaksClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
 		GameplayTweaksConfig.load();
+		SpawnLightOverlay.init();
 	}
 }

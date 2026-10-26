@@ -7,6 +7,8 @@ A client-side Fabric mod for Minecraft Java 26.3 with optional visual and gamepl
 - Disable terrain fog independently in the Overworld, Nether, and End.
 - Fullbright lighting.
 - Optional Bedrock-style reach-around block placement for bridging without sneaking. Placement still follows the world's and server's rules and permissions.
+- Optional spawn-light mesh: a red or green grid on the ground around you that shows where hostile mobs can spawn (red) and where the light keeps them away (green), following the time of day and the torches you place. Its opacity is adjustable (10 to 100 %).
+- With Holoprint installed, bridging leaves alone the area in and around a hologram, where only Holoprint's assisted placement puts blocks.
 
 ## Settings
 
@@ -37,6 +39,8 @@ Mod Fabric para Minecraft Java 26.3, de cliente, con funciones visuales y opcion
 - Desactiva la niebla del terreno por separado en el Overworld, el Nether y el End.
 - Iluminación Fullbright.
 - Colocación opcional de bloques delante del jugador al hacer bridging, al estilo Bedrock y sin agacharse. La colocación sigue sujeta a las reglas y permisos del mundo o servidor.
+- Malla de luz opcional: una cuadrícula roja o verde en el suelo a tu alrededor que muestra dónde pueden aparecer mobs hostiles (roja) y dónde la luz los impide (verde), según la hora del día y las antorchas que pongas. Su opacidad es ajustable (del 10 al 100 %).
+- Con Holoprint instalado, el bridging deja en paz la zona dentro y alrededor de un holograma, donde solo la colocación asistida de Holoprint pone bloques.
 
 ## Ajustes
 

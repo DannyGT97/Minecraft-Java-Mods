@@ -59,6 +59,7 @@ public final class ReachAroundPlacement {
 				BlockPos supportPos = target.relative(towardView);
 				Direction hitFace = towardView.getOpposite();
 				if (!canPlaceAt(minecraft, player, stack, supportPos, target, hitFace)) continue;
+				if (HoloprintCompat.owns(target)) return null;
 				return makeHit(target, hitFace);
 			}
 		}

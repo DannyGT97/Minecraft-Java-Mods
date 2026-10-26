@@ -24,8 +24,13 @@ public final class GameplayTweaksConfigScreen extends SettingsScreen {
 			new Category(
 				Component.translatable("gameplaytweaks.config.category.lighting"),
 				Component.translatable("gameplaytweaks.config.category.lighting.desc"),
-				List.of(Option.toggle("gameplaytweaks.config.fullbright", GameplayTweaksConfig::isFullbrightEnabled,
-					GameplayTweaksConfig::setFullbrightEnabled, () -> true))
+				List.of(
+					Option.toggle("gameplaytweaks.config.fullbright", GameplayTweaksConfig::isFullbrightEnabled,
+						GameplayTweaksConfig::setFullbrightEnabled, () -> true),
+					Option.toggle("gameplaytweaks.config.light_mesh", GameplayTweaksConfig::isLightMeshEnabled,
+						GameplayTweaksConfig::setLightMeshEnabled, () -> true),
+					Option.cycle("gameplaytweaks.config.light_mesh_opacity", GameplayTweaksConfig::getLightMeshOpacity,
+						GameplayTweaksConfig::setLightMeshOpacity, new int[] {10, 25, 50, 75, 100}, GameplayTweaksConfig::isLightMeshEnabled))
 			),
 			new Category(
 				Component.translatable("gameplaytweaks.config.category.gameplay"),
@@ -39,6 +44,8 @@ public final class GameplayTweaksConfigScreen extends SettingsScreen {
 			GameplayTweaksConfig.setFogDisabled("end", false);
 			GameplayTweaksConfig.setFullbrightEnabled(false);
 			GameplayTweaksConfig.setBridgingEnabled(false);
+			GameplayTweaksConfig.setLightMeshEnabled(false);
+			GameplayTweaksConfig.setLightMeshOpacity(100);
 		});
 	}
 }
