@@ -241,7 +241,7 @@ public final class Verifier {
 				} else if (settingClicks(wanted, state) > 0) {
 					kind = 3;
 				}
-			} else if (!state.isAir() && !state.canBeReplaced()) {
+			} else if (!state.isAir() && !state.canBeReplaced() && !halfSlab(wanted, state)) {
 				kind = 1;
 			}
 			result.mark(pos.asLong(), kind);
@@ -250,10 +250,16 @@ public final class Verifier {
 
 	/** True when {@code world} is the block {@code wanted} asks for (or the same fluid). */
 	public static boolean isBuilt(BlockState wanted, BlockState world) {
-		return world.getBlock() == wanted.getBlock()
+		return (world.getBlock() == wanted.getBlock() && !halfSlab(wanted, world))
 			|| (wanted.getBlock() instanceof LiquidBlock && world.getFluidState().getType().isSame(wanted.getFluidState().getType()) && !world.getFluidState().isEmpty())
 			// the bamboo item gives a sapling where there is no bamboo yet, which grows into the stalk by itself
 			|| (wanted.is(net.minecraft.world.level.block.Blocks.BAMBOO) && world.is(net.minecraft.world.level.block.Blocks.BAMBOO_SAPLING));
+	}
+
+	/** True when the schematic has a double slab and {@code world} has only one half of it: the same slab, still one item short. */
+	public static boolean halfSlab(BlockState wanted, BlockState world) {
+		return wanted.hasProperty(BlockStateProperties.SLAB_TYPE) && wanted.getValue(BlockStateProperties.SLAB_TYPE) == SlabType.DOUBLE
+			&& world.getBlock() == wanted.getBlock() && world.getValue(BlockStateProperties.SLAB_TYPE) != SlabType.DOUBLE;
 	}
 
 	/** True for the properties that placing a block decides and that must match: which way it faces, which half it is, how it is mounted. */
@@ -488,11 +494,15 @@ public final class Verifier {
 					}
 				}
 			} else {
-				job.missing += items;
+				// one half of a double slab is there: one of its two items is placed, the other is still missing
+				int half = halfSlab(wanted, world) ? 1 : 0;
+				job.placed += half;
+				job.missing += items - half;
 				if (count != null) {
-					count[2] += items;
+					count[1] += half;
+					count[2] += items - half;
 				}
-				if (!world.isAir() && !world.canBeReplaced()) {
+				if (half == 0 && !world.isAir() && !world.canBeReplaced()) {
 					job.wrongCount++;
 					if (job.wrong.size() < MAX_MARKS) {
 						job.wrong.add(pos.asLong());

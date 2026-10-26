@@ -63,6 +63,11 @@ public final class ConfigScreen extends Screen implements EditorPanel.Host {
 	}
 
 	@Override
+	public void tick() {
+		panel.tick(this);
+	}
+
+	@Override
 	public void onClose() {
 		minecraft.setScreenAndShow(parent);
 	}

@@ -17,7 +17,7 @@ Holoprint is client-only. It does not need to be installed on the server.
 - **Checks what you have built.** Blocks that are missing show as ghosts; blocks that are wrong are outlined in red.
 - **Assisted placement.** Aim at the hologram and place: the block goes in with the right state and orientation.
 - **Layers.** Look at one layer at a time, and step up and down through the build.
-- **Material list** for every placement.
+- **Material list** for every placement, sortable (most or fewest missing or needed, by name) and pinnable on the screen (top right, works outside the editor too; assign a key in the settings).
 - **Several placements at once.** Each one can be hidden, locked or removed on its own. A placement is marked as complete when everything is built (or by hand, with its box in the list): it stops being drawn and stays in the list as a reference; untick it to edit it again.
 - **Selection, copy, paste, delete and save.** Select an area of the world, copy it, paste it as a new hologram, or save it as a schematic.
 - **Build (needs cheats).** Build a whole placement in one go, or move a real area with `/clone`.
@@ -91,6 +91,18 @@ With assisted placement on and a block in your hand, clicking a chest, a table o
 
 If you also have Litematica installed, some of its default keys (for example the numpad `-`) are used by both mods; change one of them in the controls screen.
 
+## Controller (Controlify)
+
+With [Controlify](https://modrinth.com/mod/controlify) installed, Holoprint works with a controller too. It is optional, and nothing changes while you use the keyboard and mouse: it only takes effect while a controller is connected and Controlify's input mode is the controller.
+
+- **Sticks, jump and sneak** fly the camera, as they walk the player. The **triggers** are the click (attack = left click, use = right click).
+- **The bumpers** move along the tools on the hotbar (and the hotbar buttons pick one), without touching your own slot.
+- **B** opens the editor. Inside it cancels what you are doing (a move, a selection, a copy in hand) and, with nothing to cancel, closes it, like Esc. **D-pad left** rotates the hologram.
+- **B** also closes a window (the settings, the material list...), like Esc.
+- **Keyboard and controller are set apart.** With a controller connected, the Controls list in Holoprint's settings has two columns per action: the key and the controller button. Click the second one and press the button you want; Reset puts both back.
+- **Every other action** (mirror, nudge, layers, material list, build, copy, cut, paste...) is in Controlify's controls under **Holoprint**, ready to get a button, and can be put in its radial menu. Copy, cut and paste need no Ctrl on a controller.
+- The key legends show the controller's button instead of the key while you use the controller.
+
 ## Install
 
 1. Install [Fabric Loader](https://fabricmc.net/) and the Fabric API for Minecraft 26.3.
@@ -103,4 +115,4 @@ On Windows run `gradlew.bat build` (`./gradlew build` elsewhere). The mod is lef
 
 ## Status
 
-Under development, not published yet. Controller support (Controlify) is planned.
+Under development, not published yet.

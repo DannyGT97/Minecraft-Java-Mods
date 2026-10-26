@@ -11,6 +11,14 @@ repositories {
 		name = 'TerraformersMC'
 		url = 'https://maven.terraformersmc.com/releases/'
 	}
+	// Controlify (soft dependency: only its API is compiled against; nothing of it goes into the jar).
+	maven {
+		name = 'Modrinth'
+		url = 'https://api.modrinth.com/maven'
+		content {
+			includeGroup 'maven.modrinth'
+		}
+	}
 	// Add repositories to retrieve artifacts from in here.
 	// You should only use this when depending on other mods because
 	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
@@ -51,6 +59,12 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 	compileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+	compileOnly "maven.modrinth:controlify:${project.controlify_version}"
+	// ./gradlew runClient -PwithControlify starts the dev client with Controlify (and the YACL it needs) installed.
+	if (project.hasProperty('withControlify')) {
+		runtimeOnly "maven.modrinth:controlify:${project.controlify_version}"
+		runtimeOnly "maven.modrinth:yacl:${project.yacl_version}"
+	}
 }
 
 processResources {

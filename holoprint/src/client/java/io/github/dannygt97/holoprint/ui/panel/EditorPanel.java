@@ -60,6 +60,9 @@ public abstract class EditorPanel {
 	}
 
 	/** Draws what is not a widget (labels, lists). Called before the widgets are drawn. */
+	/** Called every tick while the window is open. */
+	public void tick(Host host) {}
+
 	public void render(GuiGraphicsExtractor graphics, int x, int y, int mouseX, int mouseY) {}
 
 	/** Width a window may use: the whole screen minus a margin (the toolbar is hidden while a window is open). */

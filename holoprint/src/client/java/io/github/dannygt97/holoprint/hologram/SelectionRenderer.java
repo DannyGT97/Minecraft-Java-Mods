@@ -111,16 +111,16 @@ private static void differences(net.fabricmc.fabric.api.client.rendering.v1.leve
 			continue;
 		}
 		int baseY = hologram.origin().getY();
-		marks(context, result.wrong, WRONG_COLOR, cam, range, baseY);
-		marks(context, result.wrongState, WRONG_STATE_COLOR, cam, range, baseY);
-		marks(context, result.wrongSetting, SETTING_COLOR, cam, range, baseY);
+		marks(context, hologram, result.wrong, WRONG_COLOR, cam, range, baseY);
+		marks(context, hologram, result.wrongState, WRONG_STATE_COLOR, cam, range, baseY);
+		marks(context, hologram, result.wrongSetting, SETTING_COLOR, cam, range, baseY);
 		if (config.showExtra) {
-			marks(context, result.extra, EXTRA_COLOR, cam, range, baseY);
+			marks(context, hologram, result.extra, EXTRA_COLOR, cam, range, baseY);
 		}
 	}
 }
 
-private static void marks(net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext context, long[] positions, int color, Vec3 cam, double range, int baseY) {
+private static void marks(net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext context, Hologram hologram, long[] positions, int color, Vec3 cam, double range, int baseY) {
 	if (positions.length == 0) {
 		return;
 	}
@@ -128,7 +128,7 @@ private static void marks(net.fabricmc.fabric.api.client.rendering.v1.level.Leve
 	context.submitNodeCollector().submitCustomGeometry(context.poseStack(), RenderTypes.lines(), (pose, consumer) -> {
 		int drawn = 0;
 		for (long packed : positions) {
-				if (!LayerView.shows(net.minecraft.core.BlockPos.getY(packed) - baseY)) {
+				if (!LayerView.shows(hologram, net.minecraft.core.BlockPos.getY(packed) - baseY)) {
 				continue;
 				}
 				double dx = net.minecraft.core.BlockPos.getX(packed) + 0.5 - cam.x, dy = net.minecraft.core.BlockPos.getY(packed) + 0.5 - cam.y, dz = net.minecraft.core.BlockPos.getZ(packed) + 0.5 - cam.z;

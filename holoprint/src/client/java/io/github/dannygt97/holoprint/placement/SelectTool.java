@@ -75,25 +75,25 @@ final class SelectTool implements EditorTool {
 	public List<Component> legend() {
 		Component first;
 		if (Selection.isEmpty()) {
-			first = Component.translatable("holoprint.hud.select.start");
+			first = EditorHud.line("holoprint.hud.select.start");
 		} else if (!Selection.isComplete()) {
-			first = Component.translatable("holoprint.hud.select.second");
+			first = EditorHud.line("holoprint.hud.select.second");
 		} else {
-			first = Component.translatable("holoprint.hud.select.done");
+			first = EditorHud.line("holoprint.hud.select.done");
 		}
 		if (Selection.isEmpty()) {
 			return List.of(first);
 		}
-		Component size = Component.translatable("holoprint.hud.select.size", Selection.sizeX(), Selection.sizeY(), Selection.sizeZ(), Selection.volume());
+		Component size = EditorHud.line("holoprint.hud.select.size", Selection.sizeX(), Selection.sizeY(), Selection.sizeZ(), Selection.volume());
 		if (!Selection.isComplete()) {
 			return List.of(first, size);
 		}
 		Component copy = EditorHud.ctrl(EditorKeys.COPY);
 		Component actions = SelectionActions.canChangeWorld(Minecraft.getInstance())
-			? Component.translatable("holoprint.hud.select.actions", copy, EditorHud.ctrl(EditorKeys.CUT),
+			? EditorHud.line("holoprint.hud.select.actions", copy, EditorHud.ctrl(EditorKeys.CUT),
 				EditorHud.name(EditorKeys.DELETE), EditorHud.name(EditorKeys.SAVE))
-			: Component.translatable("holoprint.hud.select.actions_survival", copy, EditorHud.name(EditorKeys.SAVE));
+			: EditorHud.line("holoprint.hud.select.actions_survival", copy, EditorHud.name(EditorKeys.SAVE));
 		return List.of(first, size, actions,
-			Component.translatable("holoprint.hud.select.clear", EditorHud.name(EditorKeys.CANCEL)));
+			EditorHud.line("holoprint.hud.select.clear", EditorHud.name(EditorKeys.CANCEL)));
 	}
 }

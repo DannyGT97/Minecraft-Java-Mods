@@ -101,7 +101,7 @@ public final class GhostEntities {
 			if (drawn >= budget) {
 				break;
 			}
-			if (!LayerView.shows((int) Math.floor(ghost.y()))) {
+			if (!LayerView.shows(hologram, (int) Math.floor(ghost.y()))) {
 				continue;
 			}
 			double wx = hologram.origin().getX() + ghost.x();
@@ -131,7 +131,8 @@ public final class GhostEntities {
 				}
 				ghostColor = color;
 				try {
-					dispatcher.submit(state, cameraState, dx, dy, dz, poseStack, collector);
+					// Vehicles and the like (minecarts, boats) hand their models to the collector with a ready texture: those come out translucent like block entities.
+					dispatcher.submit(state, cameraState, dx, dy, dz, poseStack, state instanceof net.minecraft.client.renderer.entity.state.LivingEntityRenderState ? collector : TranslucentCollector.wrap(collector, color));
 				} finally {
 					ghostColor = 0;
 				}

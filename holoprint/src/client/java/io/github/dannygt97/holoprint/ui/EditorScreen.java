@@ -154,7 +154,7 @@ public final class EditorScreen extends Screen implements EditorPanel.Host {
 	/** With the tools on the hotbar this screen is only a place for windows: with none open it goes back to the camera. */
 	private void leaveIfBare() {
 		if (panels.isEmpty() && HotbarTools.enabled()) {
-			onClose();
+			leave();
 		} else {
 			rebuildWidgets();
 		}
@@ -213,9 +213,10 @@ public final class EditorScreen extends Screen implements EditorPanel.Host {
 		return false;
 	}
 
+	/** True so that the controller's back button (Controlify calls {@link #onClose} for it, as the game does for Esc) closes the window. */
 	@Override
 	public boolean shouldCloseOnEsc() {
-		return false;
+		return true;
 	}
 
 	/** Nothing behind the editor: the world stays fully visible. */
@@ -231,6 +232,10 @@ public final class EditorScreen extends Screen implements EditorPanel.Host {
 		}
 		if (!EditorKeys.INTERFACE.isDown()) {
 			toggleKeyReleased = true;
+		}
+		EditorPanel open = panels.peek();
+		if (open != null) {
+			open.tick(this);
 		}
 	}
 
@@ -258,8 +263,6 @@ public final class EditorScreen extends Screen implements EditorPanel.Host {
 		if (event.key() == InputConstants.KEY_ESCAPE) {
 			if (typing) {
 				setFocused(null);
-			} else if (!panels.isEmpty()) {
-				back();
 			} else {
 				onClose();
 			}
@@ -271,7 +274,7 @@ public final class EditorScreen extends Screen implements EditorPanel.Host {
 		}
 		if (!typing && EditorKeys.INTERFACE.matches(event)) {
 			if (toggleKeyReleased) {
-				onClose();
+				leave();
 			}
 			return true;
 		}
@@ -321,8 +324,18 @@ public final class EditorScreen extends Screen implements EditorPanel.Host {
 		return true;
 	}
 
+	/** What Esc and the controller's back button do: close the window on top, or with none open, leave the screen. */
 	@Override
 	public void onClose() {
+		if (!panels.isEmpty()) {
+			back();
+		} else {
+			leave();
+		}
+	}
+
+	/** Goes back to the camera, whatever window is open. */
+	private void leave() {
 		minecraft.setScreenAndShow(null);
 	}
 

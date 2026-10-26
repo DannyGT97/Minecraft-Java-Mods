@@ -114,6 +114,9 @@ public final class EasyPlace {
 	private static final Map<Long, Long> RECENT = new HashMap<>();
 	/** Spots where a block was just placed, with when that stops counting: a sign placed there gets the hologram's text. */
 	private static final Map<Long, Long> PLACED = new HashMap<>();
+	/** A door, trapdoor or gate just placed that the hologram has open: once the click that placed it can be followed, it is opened without a second click. */
+	private static BlockPos followCell;
+	private static long followAt;
 
 	/** Set between {@link #before} and {@link #after} when the click needs the player to look another way. */
 	private static boolean spoofed;
@@ -176,13 +179,13 @@ public final class EasyPlace {
 				lastHandled = now;
 				return true;
 			}
-			if (useHeld >= 1 && player.getMainHandItem().getItem() instanceof BlockItem && (config.fillWhileHeld || nearHologram(mc, holograms))) {
+			if (useHeld >= 1 && heldBlock(player).getItem() instanceof BlockItem && (config.fillWhileHeld || nearHologram(mc, holograms))) {
 				// A held button only keeps filling the hologram: it never goes on placing blocks wherever it points (with the auto-fill off too, as long as
 				// it points at or beside a hologram: the game would repeat the click and put stray blocks around it).
 				lastHandled = now;
 				return true;
 			}
-			if (wouldOpenInterface(mc, holograms) && (player.getMainHandItem().getItem() instanceof BlockItem || useHeld >= 1 || now - lastHandled <= SESSION_TICKS)) {
+			if (wouldOpenInterface(mc, holograms) && (heldBlock(player).getItem() instanceof BlockItem || useHeld >= 1 || now - lastHandled <= SESSION_TICKS)) {
 				// A chest, dispenser, furnace, door, lever... of the hologram, pointed at while placing (a block in hand, or the button held, or right after a
 				// placement): the click is not for it, and the game would open its window or flip it. Like Litematica, which leaves the use click to the easy placement
 				// while it is on. With an empty hand or another item, a click uses it as usual.
@@ -277,11 +280,54 @@ public final class EasyPlace {
 		}
 		lastPlaced = now;
 		clickScheduled = false;
-		markRecent(mc, plan.target(), now);
+		BlockState first = wanted(holograms, plan.target());
+		if (!plan.toggle() && first != null && first.hasProperty(BlockStateProperties.SLAB_TYPE) && first.getValue(BlockStateProperties.SLAB_TYPE) == net.minecraft.world.level.block.state.properties.SlabType.DOUBLE
+			&& mc.level.getBlockState(plan.target()).getBlock() != first.getBlock()) {
+			// the first half of a double slab: the second half goes on the next click, the client already knows the first one is there
+			RECENT.put(plan.target().asLong(), now + 2);
+		} else {
+			markRecent(mc, plan.target(), now);
+		}
 		if (!plan.toggle()) {
 			PLACED.put(plan.target().asLong(), now + SIGN_WINDOW_TICKS);
+			BlockState asked = wanted(holograms, plan.target());
+			if (asked != null && openable(asked) && asked.hasProperty(BlockStateProperties.OPEN) && asked.getValue(BlockStateProperties.OPEN)) {
+				followCell = plan.target();
+				followAt = now;
+			}
 		}
 		mc.hitResult = plan.hit();
+		return false;
+	}
+
+	/**
+	 * The stack a use click would place: the main hand's when it holds a block, else the off hand's (the game goes on to the off hand when the main hand's
+	 * item does nothing, so a block carried there would be put down against every rule above).
+	 */
+	private static ItemStack heldBlock(Player player) {
+		ItemStack main = player.getMainHandItem();
+		ItemStack off = player.getOffhandItem();
+		return !(main.getItem() instanceof BlockItem) && off.getItem() instanceof BlockItem ? off : main;
+	}
+
+	/**
+	 * True when the assisted placement is on and {@code pos} is in or near (within a few blocks of) a visible hologram: there blocks are placed only as the
+	 * hologram asks, so a mod that places blocks by itself (the reach-around bridging of Gameplay Tweaks) leaves the spot alone. Read by that mod.
+	 */
+	public static boolean owns(BlockPos pos) {
+		if (!HoloprintConfig.get().easyPlace || !HoloprintConfig.get().showHolograms) {
+			return false;
+		}
+		for (Hologram hologram : HologramRenderer.all()) {
+			if (!hologram.visible() || !hologram.enabled()) {
+				continue;
+			}
+			BlockPos o = hologram.origin();
+			if (pos.getX() >= o.getX() - NEAR && pos.getY() >= o.getY() - NEAR && pos.getZ() >= o.getZ() - NEAR
+				&& pos.getX() < o.getX() + hologram.sizeX() + NEAR && pos.getY() < o.getY() + hologram.sizeY() + NEAR && pos.getZ() < o.getZ() + hologram.sizeZ() + NEAR) {
+				return true;
+			}
+		}
 		return false;
 	}
 
@@ -350,9 +396,15 @@ public final class EasyPlace {
 				seenPitch = mc.player.getXRot();
 			}
 		}
+		if (mc.level != null) {
+			long game = mc.level.getGameTime();
+			RECENT.values().removeIf(until -> until < game);
+		}
 		refreshTarget(mc);
+		followUp(mc);
 		driveFill(mc);
 		LayerControl.tick(mc);
+		io.github.dannygt97.holoprint.ui.MaterialsPin.tick(mc);
 		while (EditorKeys.AUTO_FILL.consumeClick()) {
 			HoloprintConfig config = HoloprintConfig.get();
 			config.fillWhileHeld = !config.fillWhileHeld;
@@ -384,6 +436,25 @@ public final class EasyPlace {
 		}
 		if (turned != null && now - turnedAt > 30) {
 			giveRotationBack(mc);
+		}
+	}
+
+	/**
+	 * A trapdoor, door or gate that the hologram has open is placed shut (a block is never placed open), so as soon as the spot is free to be clicked
+	 * again and the pointer is still on it, the one click that opens it is made here: the player gets the block as the hologram has it from one click.
+	 */
+	private static void followUp(Minecraft mc) {
+		if (followCell == null || mc.level == null) {
+			return;
+		}
+		long now = mc.level.getGameTime();
+		if (now - followAt > RETRY_TICKS + 20 || !HoloprintConfig.get().easyPlace) {
+			followCell = null;
+			return;
+		}
+		if (shownMode == TOGGLE && followCell.equals(shownCell) && !clickScheduled) {
+			followCell = null;
+			((UseItemInvoker) mc).holoprint$startUseItem();
 		}
 	}
 
@@ -450,6 +521,7 @@ public final class EasyPlace {
 	public static void init() {
 		net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.addLast(net.minecraft.resources.Identifier.fromNamespaceAndPath("holoprint", "easy_place_target"), EasyPlace::renderLabel);
 		net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.addLast(net.minecraft.resources.Identifier.fromNamespaceAndPath("holoprint", "layer"), LayerControl::render);
+		net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.addLast(net.minecraft.resources.Identifier.fromNamespaceAndPath("holoprint", "pinned_materials"), io.github.dannygt97.holoprint.ui.MaterialsPin::render);
 		net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry.addLast(net.minecraft.resources.Identifier.fromNamespaceAndPath("holoprint", "container_contents"), ContainerPreview::render);
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(EasyPlace::tick);
 	}
@@ -504,7 +576,8 @@ public final class EasyPlace {
 			return false;
 		}
 		BlockState world = mc.level.getBlockState(pos);
-		return world.isAir() || (world.canBeReplaced() && world.getBlock() != wanted.getBlock());
+		// a double slab with only one of its halves in the world still lacks the other one
+		return world.isAir() || (world.canBeReplaced() && world.getBlock() != wanted.getBlock()) || Verifier.halfSlab(wanted, world);
 	}
 
 	/** Blocks that have no item of their own, fluids and the second halves that the first half creates are not placed by hand. */
@@ -688,7 +761,7 @@ public final class EasyPlace {
 		if (!(mc.hitResult instanceof BlockHitResult hit) || hit.getType() != net.minecraft.world.phys.HitResult.Type.BLOCK) {
 			return null;
 		}
-		ItemStack held = mc.player.getMainHandItem();
+		ItemStack held = heldBlock(mc.player);
 		if (!(held.getItem() instanceof BlockItem blockItem)) {
 			return null;
 		}
@@ -713,7 +786,7 @@ public final class EasyPlace {
 		if (!(mc.hitResult instanceof BlockHitResult hit) || hit.getType() != net.minecraft.world.phys.HitResult.Type.BLOCK) {
 			return null;
 		}
-		ItemStack held = mc.player.getMainHandItem();
+		ItemStack held = heldBlock(mc.player);
 		if (!(held.getItem() instanceof BlockItem blockItem)) {
 			return null;
 		}
@@ -787,7 +860,7 @@ public final class EasyPlace {
 		if (!(mc.hitResult instanceof BlockHitResult hit) || hit.getType() != net.minecraft.world.phys.HitResult.Type.BLOCK) {
 			return false;
 		}
-		if (!(mc.player.getMainHandItem().getItem() instanceof BlockItem blockItem)) {
+		if (!(heldBlock(mc.player).getItem() instanceof BlockItem blockItem)) {
 			return false;
 		}
 		BlockPos clicked = hit.getBlockPos();
@@ -1001,7 +1074,7 @@ public final class EasyPlace {
 						continue;
 					}
 					BlockState result = accessor.holoprint$placementState(context);
-					if (result == null || !Verifier.isBuilt(wanted, result) || !accessor.holoprint$canPlace(context, result)) {
+					if (result == null || !(Verifier.isBuilt(wanted, result) || Verifier.halfSlab(wanted, result)) || !accessor.holoprint$canPlace(context, result)) {
 						continue;
 					}
 					int score = 0;
@@ -1034,6 +1107,10 @@ public final class EasyPlace {
 	 * waterlogging, stair corners, door hinges, power) follow from the neighbours and are left to the game.
 	 */
 	private static boolean decisive(BlockState wanted, Property<?> property) {
+		// a double slab is placed half by half: the half that goes down first may be either
+		if (property == BlockStateProperties.SLAB_TYPE && wanted.getValue(BlockStateProperties.SLAB_TYPE) == net.minecraft.world.level.block.state.properties.SlabType.DOUBLE) {
+			return false;
+		}
 		return io.github.dannygt97.holoprint.hologram.Verifier.decisive(wanted, property);
 	}
 

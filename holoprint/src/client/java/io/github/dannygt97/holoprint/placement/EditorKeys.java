@@ -16,6 +16,11 @@ public final class EditorKeys {
 
 	/** Opens the editor (the free camera) and closes it again. */
 	public static final KeyMapping EDITOR = key("editor", InputConstants.KEY_M);
+	/**
+	 * For a controller (unbound on the keyboard): opens the editor; inside it cancels what is being done (like Escape) and, when
+	 * there is nothing to cancel, closes it. One button for going back, as controllers have few of them.
+	 */
+	public static final KeyMapping PAD_BACK = key("pad_back", InputConstants.UNKNOWN.getValue());
 	/** Switches to the next editing mode. */
 	public static final KeyMapping MODE = key("mode", InputConstants.KEY_N);
 	/** Switches between turning the camera with the mouse and a free cursor for the buttons. */
@@ -50,6 +55,8 @@ public final class EditorKeys {
 	/** Opens the material list of the active placement, and closes it again. */
 	public static final KeyMapping MATERIALS = key("materials", InputConstants.KEY_J);
 	public static final KeyMapping LAYER_MODE = key("layer_mode", InputConstants.KEY_MULTIPLY);
+	/** Keeps the material list of the active placement on the screen, or takes it off again (unbound until the player picks a key). */
+	public static final KeyMapping PIN_MATERIALS = key("pin_materials", InputConstants.UNKNOWN.getValue());
 
 	private EditorKeys() {}
 
@@ -88,7 +95,7 @@ public final class EditorKeys {
 
 	/** Throws away presses nobody used, so they do not pile up and fire later in another mode. */
 	static void drainUnused() {
-		for (KeyMapping key : new KeyMapping[] {SPEED_DOWN, SPEED_UP, ROTATE, MIRROR, FORWARD, BACK, LEFT, RIGHT, UP, DOWN, COPY, CUT, PASTE, DELETE, SAVE, BUILD, MATERIALS}) {
+		for (KeyMapping key : new KeyMapping[] {SPEED_DOWN, SPEED_UP, ROTATE, MIRROR, FORWARD, BACK, LEFT, RIGHT, UP, DOWN, COPY, CUT, PASTE, DELETE, SAVE, BUILD, MATERIALS, PAD_BACK}) {
 			while (key.consumeClick()) {
 				// discarded
 			}

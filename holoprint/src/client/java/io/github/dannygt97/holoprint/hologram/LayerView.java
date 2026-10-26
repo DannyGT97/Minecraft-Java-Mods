@@ -26,20 +26,20 @@ public final class LayerView {
 		return layer;
 	}
 
-	/** True when the blocks at this height of a hologram (0 at its bottom) are shown. */
-	public static boolean shows(int localY) {
-		return mode == Mode.ALL || localY == layer;
+	/** True when the single layer is what {@code hologram} shows: only the active placement is cut into layers, the others stay whole. */
+	public static boolean applies(Hologram hologram) {
+		return mode == Mode.SINGLE && hologram == HologramRenderer.active();
 	}
 
-	/** The number of layers of the tallest visible hologram. */
+	/** True when the blocks at this height of {@code hologram} (0 at its bottom) are shown. */
+	public static boolean shows(Hologram hologram, int localY) {
+		return !applies(hologram) || localY == layer;
+	}
+
+	/** The number of layers of the active placement, the one the layer view works on. */
 	public static int height() {
-		int height = 0;
-		for (Hologram hologram : HologramRenderer.all()) {
-			if (hologram.visible()) {
-				height = Math.max(height, hologram.sizeY());
-			}
-		}
-		return height;
+		Hologram active = HologramRenderer.active();
+		return active == null ? 0 : active.sizeY();
 	}
 
 	/** Switches between all layers and a single one. A single layer starts at the height the player stands at. */

@@ -334,7 +334,7 @@ public final class Hologram {
 		if (x < 0 || y < 0 || z < 0 || x >= sizeX || y >= sizeY || z >= sizeZ) {
 			return null;
 		}
-		if (!LayerView.shows(y)) {
+		if (!LayerView.shows(this, y)) {
 			return null;
 		}
 		int number = grid[(y * sizeZ + z) * sizeX + x];

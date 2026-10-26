@@ -12,12 +12,16 @@
   ],
   "entrypoints": {
     "client": ["io.github.dannygt97.holoprint.client.HoloprintClient"],
-    "modmenu": ["io.github.dannygt97.holoprint.client.HoloprintModMenu"]
+    "modmenu": ["io.github.dannygt97.holoprint.client.HoloprintModMenu"],
+    "controlify": ["io.github.dannygt97.holoprint.client.HoloprintControlify"]
   },
   "depends": {
     "fabricloader": ">=0.19.5",
     "minecraft": "~26.3",
     "java": ">=25",
     "fabric-api": "*"
+  },
+  "suggests": {
+    "controlify": "*"
   }
 }

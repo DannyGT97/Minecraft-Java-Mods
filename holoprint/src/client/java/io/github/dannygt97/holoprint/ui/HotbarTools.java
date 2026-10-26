@@ -1,5 +1,6 @@
 package io.github.dannygt97.holoprint.ui;
 
+import io.github.dannygt97.holoprint.client.ControllerSupport;
 import io.github.dannygt97.holoprint.config.HoloprintConfig;
 import io.github.dannygt97.holoprint.freecam.Freecam;
 import io.github.dannygt97.holoprint.hologram.HologramRenderer;
@@ -52,7 +53,38 @@ public final class HotbarTools {
 		ClientTickEvents.END_CLIENT_TICK.register(HotbarTools::tick);
 	}
 
+	/** Where the player's own slot is, to notice when a controller moves it (see {@link #followController}). */
+	private static int playerSlot = -1;
+
+	/**
+	 * A controller does not scroll a wheel or press the number keys: Controlify sets the player's slot directly (the bumpers go one slot
+	 * on, the hotbar buttons jump to one). While the tools are on the hotbar and a controller is in use, such a change is taken for what it
+	 * means here, the highlight moving along the tools, and the player's own slot goes back to where it was.
+	 */
+	private static void followController(Minecraft mc) {
+		if (mc.player == null) {
+			playerSlot = -1;
+			return;
+		}
+		var inventory = mc.player.getInventory();
+		int now = inventory.getSelectedSlot();
+		if (enabled() && mc.gui.screen() == null && playerSlot >= 0 && now != playerSlot && ControllerSupport.active()) {
+			inventory.setSelectedSlot(playerSlot);
+			int step = Math.floorMod(now - playerSlot, 9);
+			if (step == 1) {
+				scroll(mc, -1.0);
+			} else if (step == 8) {
+				scroll(mc, 1.0);
+			} else {
+				pickSlot(mc, now);
+			}
+			return;
+		}
+		playerSlot = now;
+	}
+
 	private static void tick(Minecraft mc) {
+		followController(mc);
 		if (!enabled()) {
 			page = 0;
 			slot = 0;
@@ -199,17 +231,22 @@ public final class HotbarTools {
 		KeyMapping[] keys = mc.options.keyHotbarSlots;
 		for (int key = 0; key < keys.length && key < 9; key++) {
 			while (keys[key].consumeClick()) {
-				if (glyph(key) != null) {
-					if (!usable(key)) {
-						// off: the highlight does not go there, and the reason is told
-						blocked(mc);
-						continue;
-					}
-					slot = key;
-					use(mc, key);
-				}
+				pickSlot(mc, key);
 			}
 		}
+	}
+
+	/** Goes to the tool in a slot and uses it. A tool that is off does not take the highlight, and the reason is told. */
+	private static void pickSlot(Minecraft mc, int which) {
+		if (which < 0 || which >= 9 || glyph(which) == null) {
+			return;
+		}
+		if (!usable(which)) {
+			blocked(mc);
+			return;
+		}
+		slot = which;
+		use(mc, which);
 	}
 
 	/** The wheel moves the highlight along the slots (down = next, as with the hotbar), skipping the empty ones; an editing mode takes effect when it is reached. */
@@ -336,11 +373,11 @@ public final class HotbarTools {
 			return java.util.List.of();
 		}
 		return switch (glyph) {
-			case "Gr" -> java.util.List.of(Component.translatable("holoprint.hotbar.legend.Gr.0"));
-			case "Ly" -> java.util.List.of(Component.translatable("holoprint.hotbar.legend.Ly.0"),
-				Component.translatable("holoprint.hotbar.legend.Ly.1", EditorHud.name(EditorKeys.LAYER_UP), EditorHud.name(EditorKeys.LAYER_DOWN), EditorHud.name(EditorKeys.LAYER_MODE)));
-			case "Bu" -> java.util.List.of(Component.translatable("holoprint.hotbar.legend.Bu.0"), Component.translatable("holoprint.hotbar.legend.Bu.1"),
-				Component.translatable("holoprint.hotbar.legend.Bu.2", EditorHud.name(EditorKeys.BUILD)));
+			case "Gr" -> java.util.List.of(EditorHud.line("holoprint.hotbar.legend.Gr.0"));
+			case "Ly" -> java.util.List.of(EditorHud.line("holoprint.hotbar.legend.Ly.0"),
+				EditorHud.line("holoprint.hotbar.legend.Ly.1", EditorHud.name(EditorKeys.LAYER_UP), EditorHud.name(EditorKeys.LAYER_DOWN), EditorHud.name(EditorKeys.LAYER_MODE)));
+			case "Bu" -> java.util.List.of(EditorHud.line("holoprint.hotbar.legend.Bu.0"), EditorHud.line("holoprint.hotbar.legend.Bu.1"),
+				EditorHud.line("holoprint.hotbar.legend.Bu.2", EditorHud.name(EditorKeys.BUILD)));
 			default -> java.util.List.of();
 		};
 	}

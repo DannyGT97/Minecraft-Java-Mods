@@ -168,10 +168,10 @@ final class MoveTool implements EditorTool {
 	public List<Component> legend() {
 		boolean pinned = state == State.PINNED;
 		return List.of(
-			Component.translatable(pinned ? "holoprint.hud.move.pinned" : "holoprint.hud.move.following"),
-			Component.translatable("holoprint.hud.move.turn", EditorHud.name(EditorKeys.ROTATE), EditorHud.name(EditorKeys.MIRROR)),
-			Component.translatable("holoprint.hud.move.nudge", EditorHud.name(EditorKeys.FORWARD), EditorHud.name(EditorKeys.UP)),
-			Component.translatable("holoprint.hud.move.done", EditorHud.name(EditorKeys.CANCEL)),
-			Component.translatable("holoprint.hud.move.build", EditorHud.name(EditorKeys.BUILD)));
+			EditorHud.line(pinned ? "holoprint.hud.move.pinned" : "holoprint.hud.move.following"),
+			EditorHud.line("holoprint.hud.move.turn", EditorHud.name(EditorKeys.ROTATE), EditorHud.name(EditorKeys.MIRROR)),
+			EditorHud.line("holoprint.hud.move.nudge", EditorHud.name(EditorKeys.FORWARD), EditorHud.name(EditorKeys.UP)),
+			EditorHud.line("holoprint.hud.move.done", EditorHud.name(EditorKeys.CANCEL)),
+			EditorHud.line("holoprint.hud.move.build", EditorHud.name(EditorKeys.BUILD)));
 	}
 }

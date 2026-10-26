@@ -85,6 +85,8 @@ final class RetainedMeshes {
 	private static GpuBuffer lineIndexBuffer;
 	private static int lineIndexLines;
 	private static final float OUTLINE_WIDTH = 1.5F;
+	/** How far (blocks) a face is moved out of its block, so that it wins the depth test against a different block standing in the same spot. */
+	static final float FACE_PUSH = 0.003F;
 	private static final int BIAS = 1 << 19;
 
 	private RetainedMeshes() {}
@@ -266,7 +268,7 @@ final class RetainedMeshes {
 	private static Gpu ensure(Item item) {
 		SectionMesh mesh = item.mesh();
 		Gpu gpu = mesh.gpu;
-		int layerStamp = LayerView.mode() == LayerView.Mode.SINGLE ? LayerView.layer() + 1 : 0;
+		int layerStamp = LayerView.applies(item.hologram()) ? LayerView.layer() + 1 : 0;
 		int builtStamp = hideBuilt ? item.hologram().builtStamp(mesh.stampKey) : 0;
 		if (gpu != null && gpu.hidingBuilt == hideBuilt && gpu.builtStamp == builtStamp && gpu.layerStamp == layerStamp && gpu.outlineArgb == outlineArgb) {
 			return gpu;
@@ -284,7 +286,7 @@ final class RetainedMeshes {
 			boolean fluid = pass == 1;
 			int count = 0;
 			for (int q = 0; q < mesh.quads; q++) {
-				if (mesh.absolute[q] == fluid && keep(mesh, q, built)) {
+				if (mesh.absolute[q] == fluid && keep(item.hologram(), mesh, q, built)) {
 					count++;
 				}
 			}
@@ -293,8 +295,10 @@ final class RetainedMeshes {
 			}
 			try (ByteBufferBuilder allocator = new ByteBufferBuilder(count * 4 * DefaultVertexFormat.ENTITY.getVertexSize() + 64)) {
 				BufferBuilder builder = new BufferBuilder(allocator, PrimitiveTopology.QUADS, DefaultVertexFormat.ENTITY);
+				// Every face is moved a hair out of its block: where the world has another block in the same spot (a wrong one) its faces would flicker against the hologram's.
+				float push = fluid ? 0.0F : FACE_PUSH;
 				for (int q = 0; q < mesh.quads; q++) {
-					if (mesh.absolute[q] != fluid || !keep(mesh, q, built)) {
+					if (mesh.absolute[q] != fluid || !keep(item.hologram(), mesh, q, built)) {
 						continue;
 					}
 					Direction facing = HologramRenderer.DIRECTIONS[mesh.normal[q]];
@@ -304,7 +308,7 @@ final class RetainedMeshes {
 					int colour = 0xFF000000 | mesh.rgb[q];
 					for (int v = 0; v < 4; v++) {
 						int at = (q * 4 + v) * 5;
-						builder.addVertex(mesh.vertices[at], mesh.vertices[at + 1], mesh.vertices[at + 2], colour, mesh.vertices[at + 3], mesh.vertices[at + 4],
+						builder.addVertex(mesh.vertices[at] + nx * push, mesh.vertices[at + 1] + ny * push, mesh.vertices[at + 2] + nz * push, colour, mesh.vertices[at + 3], mesh.vertices[at + 4],
 							OverlayTexture.NO_OVERLAY, mesh.light[q], nx, ny, nz);
 					}
 				}
@@ -321,17 +325,17 @@ final class RetainedMeshes {
 			}
 		}
 		if (outlineArgb != 0) {
-			buildOutline(mesh, built, gpu);
+			buildOutline(item.hologram(), mesh, built, gpu);
 		}
 		mesh.gpu = gpu;
 		return gpu;
 	}
 
 	/** The twelve edges of every block of the cell that shows a face (the ones two blocks share are drawn once). Fluids are left out: a sea would be a wall of lines. */
-	private static void buildOutline(SectionMesh mesh, BitSet built, Gpu gpu) {
+	private static void buildOutline(Hologram hologram, SectionMesh mesh, BitSet built, Gpu gpu) {
 		java.util.Set<Long> cells = new java.util.LinkedHashSet<>();
 		for (int q = 0; q < mesh.quads; q++) {
-			if (!mesh.absolute[q] && keep(mesh, q, built)) {
+			if (!mesh.absolute[q] && keep(hologram, mesh, q, built)) {
 				cells.add(pack(mesh.block[3 * q], mesh.block[3 * q + 1], mesh.block[3 * q + 2], 0));
 			}
 		}
@@ -405,8 +409,8 @@ final class RetainedMeshes {
 	}
 
 	/** Whether a quad is part of the buffers: its block is not built already (when those are hidden) and its layer is the one shown. */
-	private static boolean keep(SectionMesh mesh, int q, BitSet built) {
-		if (!LayerView.shows(mesh.block[3 * q + 1])) {
+	private static boolean keep(Hologram hologram, SectionMesh mesh, int q, BitSet built) {
+		if (!LayerView.shows(hologram, mesh.block[3 * q + 1])) {
 			return false;
 		}
 		return built == null || !built.get(mesh.cell[q]);

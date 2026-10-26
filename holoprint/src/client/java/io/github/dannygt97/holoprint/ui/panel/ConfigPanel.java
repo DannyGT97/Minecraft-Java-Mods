@@ -8,6 +8,7 @@ import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import io.github.dannygt97.holoprint.client.ControllerSupport;
 import io.github.dannygt97.holoprint.config.HoloprintConfig;
 import io.github.dannygt97.holoprint.placement.EditorKeys;
 import net.minecraft.ChatFormatting;
@@ -51,6 +52,8 @@ public final class ConfigPanel extends EditorPanel {
 	private boolean searchFocused;
 	/** The key whose new binding is being waited for, or null. */
 	private KeyMapping listening;
+	/** The action whose new controller button is being waited for, or null. */
+	private KeyMapping listeningPad;
 
 	@Override
 	public Component title() {
@@ -72,11 +75,21 @@ public final class ConfigPanel extends EditorPanel {
 	}
 
 	private static List<KeyMapping> keys() {
+		// the controller's back button only has a use with a controller
+		if (ControllerSupport.connected()) {
+			List<KeyMapping> all = new ArrayList<>(List.of(EditorKeys.PAD_BACK));
+			all.addAll(baseKeys());
+			return all;
+		}
+		return baseKeys();
+	}
+
+	private static List<KeyMapping> baseKeys() {
 		return List.of(EditorKeys.EDITOR, EditorKeys.MODE, EditorKeys.INTERFACE, EditorKeys.ROTATE, EditorKeys.MIRROR, EditorKeys.CANCEL,
 			EditorKeys.FORWARD, EditorKeys.BACK, EditorKeys.LEFT, EditorKeys.RIGHT, EditorKeys.UP, EditorKeys.DOWN,
 			EditorKeys.COPY, EditorKeys.CUT, EditorKeys.PASTE, EditorKeys.DELETE, EditorKeys.SAVE, EditorKeys.BUILD,
 			EditorKeys.EASY_PLACE, EditorKeys.AUTO_FILL,
-			EditorKeys.LAYER_MODE, EditorKeys.LAYER_UP, EditorKeys.LAYER_DOWN, EditorKeys.MATERIALS);
+			EditorKeys.LAYER_MODE, EditorKeys.LAYER_UP, EditorKeys.LAYER_DOWN, EditorKeys.MATERIALS, EditorKeys.PIN_MATERIALS);
 	}
 
 	private List<KeyMapping> shownKeys() {
@@ -107,8 +120,23 @@ public final class ConfigPanel extends EditorPanel {
 		Minecraft.getInstance().options.save();
 	}
 
+	/** While a controller button is being waited for, the first one pressed is set for the action and the window is redrawn with it. */
+	@Override
+	public void tick(Host host) {
+		if (listeningPad != null && ControllerSupport.padListen(listeningPad)) {
+			listeningPad = null;
+			host.rebuild();
+		}
+	}
+
 	@Override
 	public boolean keyPressed(Host host, KeyEvent event) {
+		if (listeningPad != null) {
+			// waiting for a controller button: any key on the keyboard gives up
+			listeningPad = null;
+			host.rebuild();
+			return true;
+		}
 		if (listening == null) {
 			return false;
 		}
@@ -129,6 +157,7 @@ public final class ConfigPanel extends EditorPanel {
 				selected = category;
 				optScroll = 0;
 				listening = null;
+				listeningPad = null;
 				host.rebuild();
 			}));
 			ey += 22;
@@ -364,7 +393,14 @@ public final class ConfigPanel extends EditorPanel {
 		}
 		List<KeyMapping> shown = shownKeys();
 		keyScroll = Math.max(0, Math.min(keyScroll, Math.max(0, shown.size() - keyRows())));
-		int keyButtonWidth = Math.min(130, cw / 3);
+		// With a controller connected every action has two buttons, one for the keyboard and one for the controller, each set on its own.
+		boolean pad = ControllerSupport.connected();
+		int padButtonWidth = pad ? Math.min(70, cw / 6) : 0;
+		int keyButtonWidth = pad ? Math.min(110, cw / 4) : Math.min(130, cw / 3);
+		int keyX = cx + cw - keyButtonWidth - 44 - (pad ? padButtonWidth + 4 : 0);
+		if (listeningPad != null && !ControllerSupport.connected()) {
+			listeningPad = null;
+		}
 		for (int i = 0; i < keyRows() && keyScroll + i < shown.size(); i++) {
 			KeyMapping key = shown.get(keyScroll + i);
 			int rowY = y + 28 + i * KEY_ROW;
@@ -379,8 +415,19 @@ public final class ConfigPanel extends EditorPanel {
 			}
 			Button keyButton = host.add(Button.builder(label, b -> {
 				listening = key;
+				listeningPad = null;
 				host.rebuild();
-			}).bounds(cx + cw - keyButtonWidth - 44, rowY, keyButtonWidth, 16).build());
+			}).bounds(keyX, rowY, keyButtonWidth, 16).build());
+			if (pad) {
+				Component padLabel = listeningPad == key ? Component.literal("> ... <").withStyle(ChatFormatting.YELLOW) : ControllerSupport.padLabel(key);
+				Button padButton = host.add(Button.builder(padLabel, b -> {
+					listeningPad = key;
+					listening = null;
+					ControllerSupport.padBeginListening();
+					host.rebuild();
+				}).bounds(keyX + keyButtonWidth + 4, rowY, padButtonWidth, 16).build());
+				padButton.setTooltip(Tooltip.create(Component.translatable("holoprint.config.pad_button")));
+			}
 			if (!clashes.isEmpty()) {
 				StringBuilder names = new StringBuilder();
 				for (KeyMapping other : clashes) {
@@ -390,12 +437,15 @@ public final class ConfigPanel extends EditorPanel {
 			}
 			Button reset = small(host, cx + cw - 40, rowY, 40, Component.translatable("controls.reset").getString(), () -> {
 				rebind(key, key.getDefaultKey());
+				if (pad) {
+					ControllerSupport.padReset(key);
+				}
 				host.rebuild();
 			});
-			reset.active = !key.isDefault();
+			reset.active = !key.isDefault() || pad && !ControllerSupport.padIsDefault(key);
 			boolean clash = !clashes.isEmpty();
 			overlays.add(g -> {
-				String text = font().plainSubstrByWidth(Component.translatable(key.getName()).getString(), cw - keyButtonWidth - 44 - 6);
+				String text = font().plainSubstrByWidth(Component.translatable(key.getName()).getString(), keyX - cx - 6);
 				text(g, text, cx, rowY + 4, clash ? 0xFFFF7070 : TEXT);
 			});
 		}
@@ -404,6 +454,9 @@ public final class ConfigPanel extends EditorPanel {
 		}
 		if (listening != null) {
 			overlays.add(g -> text(g, Component.translatable("holoprint.config.press_key"), cx, y + body - 12, GOLD));
+		}
+		if (listeningPad != null) {
+			overlays.add(g -> text(g, Component.translatable("holoprint.config.press_button"), cx, y + body - 12, GOLD));
 		}
 	}
 

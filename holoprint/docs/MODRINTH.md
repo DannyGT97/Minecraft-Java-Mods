@@ -80,4 +80,8 @@ All of them can be changed in the controls screen.
 | `J` | Material list |
 | Numpad `+` / `-` / `*` | Layer up / down / all or one |
 
+## Controller
+
+With [Controlify](https://modrinth.com/mod/controlify) installed it works with a controller too (it is optional, and only acts while you use the controller): the bumpers pick the tools on the hotbar, the triggers click, **B** opens the editor, cancels and closes it, the D-pad left rotates, and every other action is in Controlify's controls under **Holoprint**.
+
 If you also use Litematica, a few default keys (like the numpad `-`) are shared: change one of the two.

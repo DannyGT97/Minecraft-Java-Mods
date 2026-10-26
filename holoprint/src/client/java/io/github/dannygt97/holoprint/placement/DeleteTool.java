@@ -63,6 +63,6 @@ final class DeleteTool implements EditorTool {
 
 	@Override
 	public List<Component> legend() {
-		return List.of(Component.translatable("holoprint.hud.delete.pick"), Component.translatable("holoprint.hud.delete.right"));
+		return List.of(EditorHud.line("holoprint.hud.delete.pick"), EditorHud.line("holoprint.hud.delete.right"));
 	}
 }

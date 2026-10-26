@@ -75,7 +75,7 @@ public final class GhostBlockEntities {
 				break;
 			}
 			BlockPos local = ghost.local();
-			if (!LayerView.shows(local.getY())) {
+			if (!LayerView.shows(hologram, local.getY())) {
 				continue;
 			}
 			if (built != null && built.get((local.getY() * hologram.sizeZ() + local.getZ()) * hologram.sizeX() + local.getX())) {

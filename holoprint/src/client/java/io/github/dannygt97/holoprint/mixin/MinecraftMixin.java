@@ -12,14 +12,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import net.minecraft.client.Minecraft;
 
+// Early priority (the default is 1000): the use click goes through the easy placement first, so a mod that places blocks where the pointer misses (reach-around
+// bridging) sees the click the placement has already dealt with.
 // While the free camera is on, the player must not attack, use items or pick blocks: those clicks
 // belong to the hologram instead.
-@Mixin(Minecraft.class)
+@Mixin(value = Minecraft.class, priority = 500)
 public abstract class MinecraftMixin {
 	// The number keys pick a tool of the editor instead of a slot of the player (see HotbarTools).
 	@Inject(method = "handleKeybinds", at = @At("HEAD"))
 	private void holoprint$hotbarKeys(final CallbackInfo ci) {
 		HotbarTools.consumeKeys(Minecraft.getInstance());
+		Editor.dropGameKeys(Minecraft.getInstance());
 	}
 
 	// Escape cancels what the editor is doing (a move, a selection, a copy in hand) before it opens the pause menu.

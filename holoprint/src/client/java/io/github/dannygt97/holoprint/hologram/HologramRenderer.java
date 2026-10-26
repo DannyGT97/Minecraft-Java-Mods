@@ -98,7 +98,7 @@ public final class HologramRenderer {
 					continue;
 				}
 				BlockPos origin = hologram.origin();
-				List<Hologram.Section> shown = LayerView.mode() == LayerView.Mode.SINGLE ? hologram.layerSections(LayerView.layer()) : hologram.sections();
+				List<Hologram.Section> shown = LayerView.applies(hologram) ? hologram.layerSections(LayerView.layer()) : hologram.sections();
 				for (Hologram.Section section : shown) {
 					AABB box = new AABB(origin.getX() + section.minX, origin.getY() + section.minY, origin.getZ() + section.minZ,
 						origin.getX() + section.maxX, origin.getY() + section.maxY, origin.getZ() + section.maxZ);
@@ -219,7 +219,7 @@ public final class HologramRenderer {
 					java.util.BitSet built = config.hideBuilt ? hologram.builtCells() : null;
 					for (Hologram.Entry entry : mesh.arrows) {
 						BlockPos local = entry.local();
-						if (!LayerView.shows(local.getY())) {
+						if (!LayerView.shows(hologram, local.getY())) {
 							continue;
 						}
 						if (built != null && built.get((local.getY() * hologram.sizeZ() + local.getZ()) * hologram.sizeX() + local.getX())) {
@@ -242,7 +242,7 @@ public final class HologramRenderer {
 			// Blocks that are already built in the world are left out, so only what is still to do is drawn.
 			java.util.BitSet built = config.hideBuilt ? hologram.builtCells() : null;
 			for (int q = 0; q < mesh.quads; q++) {
-				if (!LayerView.shows(mesh.block[3 * q + 1])) {
+				if (!LayerView.shows(hologram, mesh.block[3 * q + 1])) {
 					continue;
 				}
 				if (built != null && built.get(mesh.cell[q])) {
@@ -256,9 +256,10 @@ public final class HologramRenderer {
 				Direction facing = DIRECTIONS[mesh.normal[q]];
 				float nx = facing.getStepX(), ny = facing.getStepY(), nz = facing.getStepZ();
 				int light = mesh.light[q];
+				float push = mesh.absolute[q] ? 0.0F : RetainedMeshes.FACE_PUSH;
 				for (int v = 0; v < 4; v++) {
 					int at = (q * 4 + v) * 5;
-					consumer.addVertex(ox + mesh.vertices[at], oy + mesh.vertices[at + 1], oz + mesh.vertices[at + 2], color,
+					consumer.addVertex(ox + mesh.vertices[at] + nx * push, oy + mesh.vertices[at + 1] + ny * push, oz + mesh.vertices[at + 2] + nz * push, color,
 						mesh.vertices[at + 3], mesh.vertices[at + 4], OverlayTexture.NO_OVERLAY, light, nx, ny, nz);
 				}
 			}

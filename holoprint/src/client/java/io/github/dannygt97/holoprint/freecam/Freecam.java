@@ -25,7 +25,6 @@ public final class Freecam {
 
 	private static Marker camera;
 	private static Entity previousCamera;
-	private static ClientInput previousInput;
 	private static double speed = 0.9;
 	private static boolean previousSmartCull;
 	/** Game tick of the last "you cannot go further" message, so holding a key does not repeat it. */
@@ -59,13 +58,41 @@ public final class Freecam {
 		}
 		place(ahead.x, ahead.y, ahead.z, mc.player.getYRot(), mc.player.getXRot());
 		previousCamera = mc.getCameraEntity();
-		previousInput = mc.player.input;
-		mc.player.input = new FreecamInput(mc.options);
+		mc.player.input = new FreecamInput(mc.player.input);
 		// The game hides chunks it thinks are not reachable from the camera; a flying camera that goes
 		// through terrain would see holes, so that shortcut is off while it flies.
 		previousSmartCull = mc.smartCull;
 		mc.smartCull = false;
 		mc.setCameraEntity(camera);
+	}
+
+	/**
+	 * Every tick: when a controller mod swaps the player's input for its own (a controller was picked up, or put down), the free camera takes the new
+	 * one over, so the sticks keep flying the camera instead of walking the player.
+	 */
+	public static void keepInput(Minecraft mc) {
+		if (camera != null && mc.player != null && !(mc.player.input instanceof FreecamInput)) {
+			mc.player.input = new FreecamInput(mc.player.input);
+		}
+		if (camera != null && mc.player != null) {
+			standStill(mc);
+		}
+	}
+
+	/**
+	 * The player stops where it is: with no input left to push it, it would still glide on the speed it had when the camera took over (a creative flight,
+	 * a sprint, ice). Falling goes on, since gravity is not the player's doing.
+	 */
+	private static void standStill(Minecraft mc) {
+		var player = mc.player;
+		if (player.isFallFlying() || player.isPassenger()) {
+			return;
+		}
+		Vec3 speedNow = player.getDeltaMovement();
+		if (speedNow.x != 0.0 || speedNow.z != 0.0) {
+			player.setDeltaMovement(0.0, speedNow.y, 0.0);
+		}
+		player.setSprinting(false);
 	}
 
 	/** Gives the view and the controls back to the player. */
@@ -74,15 +101,14 @@ public final class Freecam {
 			return;
 		}
 		if (mc.player != null) {
-			if (previousInput != null) {
-				mc.player.input = previousInput;
+			if (mc.player.input instanceof FreecamInput ours) {
+				mc.player.input = ours.inner();
 			}
 			mc.setCameraEntity(previousCamera != null ? previousCamera : mc.player);
 			mc.smartCull = previousSmartCull;
 		}
 		camera = null;
 		previousCamera = null;
-		previousInput = null;
 	}
 
 	/** Mouse or controller look: turns the camera instead of the player. */

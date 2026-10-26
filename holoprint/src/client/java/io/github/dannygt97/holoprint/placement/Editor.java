@@ -3,6 +3,7 @@ package io.github.dannygt97.holoprint.placement;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.github.dannygt97.holoprint.client.ControllerSupport;
 import io.github.dannygt97.holoprint.freecam.Freecam;
 import io.github.dannygt97.holoprint.hologram.Hologram;
 import io.github.dannygt97.holoprint.hologram.HologramRenderer;
@@ -272,8 +273,29 @@ public final class Editor {
 		}
 	}
 
+	/** True when {@code key} was pressed since the last look; all its pending presses are used up. */
+	private static boolean pressed(net.minecraft.client.KeyMapping key) {
+		boolean any = false;
+		while (key.consumeClick()) {
+			any = true;
+		}
+		return any;
+	}
+
+	/**
+	 * The player's own actions that the editor has no use for (dropping what the hand holds, swapping hands) do nothing while the free camera is on:
+	 * a button shared with the editor (the controller's B drops items too) would otherwise throw the item away, or do it as soon as the editor ends.
+	 */
+	public static void dropGameKeys(Minecraft mc) {
+		if (Freecam.isActive()) {
+			pressed(mc.options.keyDrop);
+			pressed(mc.options.keySwapOffhand);
+		}
+	}
+
 	private static void tick(Minecraft mc) {
 		EditorKeys.migrateOldDefaults(mc);
+		Freecam.keepInput(mc);
 		if (mc.level == null || mc.player == null) {
 			if (active) {
 				active = false;
@@ -284,12 +306,15 @@ public final class Editor {
 		}
 		SelectionActions.tick(mc);
 		if (!active) {
-			if (EditorKeys.EDITOR.consumeClick() && mc.gui.screen() == null) {
+			boolean open = EditorKeys.EDITOR.consumeClick();
+			open |= pressed(EditorKeys.PAD_BACK);
+			if (open && mc.gui.screen() == null) {
 				start(mc);
 			}
 			EditorKeys.drainUnused();
 			return;
 		}
+		dropGameKeys(mc);
 		Screen screen = mc.gui.screen();
 		if (screen != null && !(screen instanceof EditorScreen)) {
 			EditorKeys.drainUnused();
@@ -297,6 +322,11 @@ public final class Editor {
 		}
 
 		if (EditorKeys.EDITOR.consumeClick()) {
+			stop(mc);
+			return;
+		}
+		// The controller's back button: cancels what the tool is doing and, with nothing to cancel, closes the editor.
+		if (pressed(EditorKeys.PAD_BACK) && screen == null && !escape(mc)) {
 			stop(mc);
 			return;
 		}
@@ -327,7 +357,8 @@ public final class Editor {
 				return;
 			}
 		}
-		boolean ctrl = mc.hasControlDown();
+		// A controller has no Ctrl: with one in use the copy, cut and paste buttons act on their own.
+		boolean ctrl = mc.hasControlDown() || ControllerSupport.active();
 		while (EditorKeys.COPY.consumeClick()) {
 			if (ctrl) SelectionActions.copy(mc);
 		}

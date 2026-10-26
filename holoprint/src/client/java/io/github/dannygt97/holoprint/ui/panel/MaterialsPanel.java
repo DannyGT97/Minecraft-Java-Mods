@@ -12,6 +12,7 @@ import io.github.dannygt97.holoprint.hologram.Hologram;
 import io.github.dannygt97.holoprint.hologram.HologramRenderer;
 import io.github.dannygt97.holoprint.hologram.Verifier;
 import io.github.dannygt97.holoprint.schematic.SchematicFolder;
+import io.github.dannygt97.holoprint.ui.MaterialsPin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
@@ -32,7 +33,7 @@ public final class MaterialsPanel extends EditorPanel {
 	private static boolean onlyMissing = true;
 
 	private final int WIDTH = Math.min(NOMINAL_WIDTH, availableWidth());
-	private final int rows = Math.max(4, Math.min(24, (available() - 26 - HEAD - 36) / ROW_HEIGHT));
+	private final int rows = Math.max(4, Math.min(24, (available() - 26 - HEAD - 60) / ROW_HEIGHT));
 	private final Hologram hologram = HologramRenderer.active();
 	private int scroll;
 
@@ -48,14 +49,14 @@ public final class MaterialsPanel extends EditorPanel {
 
 	@Override
 	public int height() {
-		return 26 + HEAD + rows * ROW_HEIGHT + 36;
+		return 26 + HEAD + rows * ROW_HEIGHT + 60;
 	}
 
 	private List<Verifier.Row> shown() {
 		Verifier.Result result = hologram == null ? null : hologram.verification();
 		List<Verifier.Row> out = new ArrayList<>();
 		if (result != null && result.matches(hologram.origin(), hologram.quarterTurns(), hologram.mirrored())) {
-			for (Verifier.Row row : result.rows) {
+			for (Verifier.Row row : MaterialsPin.sorted(result.rows)) {
 				if (!onlyMissing || row.missing() > 0) {
 					out.add(row);
 				}
@@ -81,6 +82,18 @@ public final class MaterialsPanel extends EditorPanel {
 				host.rebuild();
 			});
 		button(host, x + PAD + 3 * (w + 4), footerY, w, Component.translatable("holoprint.materials.export"), this::export);
+		// The second row: the order of the lists (the window and the pinned one) and whether the list stays on the screen.
+		int w2 = (WIDTH - 2 * PAD - 4) / 2;
+		button(host, x + PAD, footerY + 24, w2, Component.translatable("holoprint.materials.sort", MaterialsPin.sort().label()), () -> {
+			MaterialsPin.cycleSort();
+			scroll = 0;
+			host.rebuild();
+		});
+		button(host, x + PAD + w2 + 4, footerY + 24, w2, Component.translatable("holoprint.materials.pin",
+			Component.translatable(MaterialsPin.pinned() ? "options.on" : "options.off")), () -> {
+				MaterialsPin.togglePinned();
+				host.rebuild();
+			});
 	}
 
 	/** The blocks of a row the client could not check (they are in chunks it does not have): neither placed nor missing as far as it can tell. */
@@ -96,7 +109,7 @@ public final class MaterialsPanel extends EditorPanel {
 		}
 		StringBuilder text = new StringBuilder();
 		text.append(hologram.displayName()).append('\n');
-		for (Verifier.Row row : result.rows) {
+		for (Verifier.Row row : MaterialsPin.sorted(result.rows)) {
 			text.append(row.name().getString()).append(": ").append(row.needed()).append(" needed, ").append(row.placed()).append(" placed, ")
 				.append(row.missing()).append(" missing").append(unchecked(row) > 0 ? ", " + unchecked(row) + " unchecked (not loaded)" : "").append('\n');
 		}
@@ -119,16 +132,7 @@ public final class MaterialsPanel extends EditorPanel {
 	}
 
 	private static Map<Item, Integer> carried() {
-		Map<Item, Integer> counts = new HashMap<>();
-		Minecraft mc = Minecraft.getInstance();
-		if (mc.player != null) {
-			for (ItemStack stack : mc.player.getInventory().getNonEquipmentItems()) {
-				if (!stack.isEmpty()) {
-					counts.merge(stack.getItem(), stack.getCount(), Integer::sum);
-				}
-			}
-		}
-		return counts;
+		return MaterialsPin.carried();
 	}
 
 	@Override

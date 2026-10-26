@@ -26,6 +26,15 @@ public abstract class HudMixin {
 		}
 	}
 
+	// The name of the item in the player's slot (the vanilla note above the hotbar) means nothing while the hotbar shows the tools: moving along them
+	// changes the slot a controller keeps, and every move would flash the name of what happens to be there.
+	@Inject(method = "extractSelectedItemName", at = @At("HEAD"), cancellable = true)
+	private void holoprint$itemName(final GuiGraphicsExtractor graphics, final CallbackInfo ci) {
+		if (HotbarTools.enabled()) {
+			ci.cancel();
+		}
+	}
+
 	@Redirect(method = "extractHotbarAndDecorations", at = @At(value = "INVOKE",
 		target = "Lnet/minecraft/client/gui/contextualbar/ContextualBar;extractBackground(Lnet/minecraft/client/gui/GuiGraphicsExtractor;Lnet/minecraft/client/DeltaTracker;)V"))
 	private void holoprint$barBackground(final ContextualBar bar, final GuiGraphicsExtractor graphics, final DeltaTracker delta) {

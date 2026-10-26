@@ -17,7 +17,7 @@ Holoprint es solo de cliente. No hace falta instalarlo en el servidor.
 - **Comprueba lo que has construido.** Los bloques que faltan se ven como fantasmas; los que están mal se marcan con un contorno rojo.
 - **Colocación asistida.** Apunta al holograma y coloca: el bloque entra con el estado y la orientación correctos.
 - **Capas.** Mira una sola capa cada vez y sube y baja por la construcción.
-- **Lista de materiales** de cada colocación.
+- **Lista de materiales** de cada colocación, ordenable (más o menos que faltan o necesarios, por nombre) y fijable en pantalla (arriba a la derecha, también fuera del editor; asigna una tecla en los ajustes).
 - **Varias colocaciones a la vez.** Cada una se puede ocultar, bloquear o quitar por separado. Una colocación se marca como completa cuando todo está construido (o a mano, con su casilla en la lista): deja de dibujarse y se queda en la lista como referencia; desmárcala para volver a editarla.
 - **Selección, copiar, pegar, borrar y guardar.** Selecciona una zona del mundo, cópiala, pégala como un holograma nuevo o guárdala como esquema.
 - **Construir (necesita trucos).** Construye una colocación entera de una vez, o mueve una zona real con `/clone`.
@@ -91,6 +91,18 @@ Con la colocación asistida activada y un bloque en la mano, hacer clic en un co
 
 Si también tienes Litematica instalado, algunas de sus teclas por defecto (por ejemplo, el `-` del teclado numérico) las usan los dos mods; cambia una de ellas en la pantalla de controles.
 
+## Mando (Controlify)
+
+Con [Controlify](https://modrinth.com/mod/controlify) instalado, Holoprint también se maneja con mando. Es opcional y no cambia nada mientras usas teclado y ratón: solo actúa mientras hay un mando conectado y el modo de entrada de Controlify es el mando.
+
+- **Los sticks, saltar y agacharse** mueven la cámara, igual que mueven al jugador. **Los gatillos** son el clic (atacar = clic izquierdo, usar = clic derecho).
+- **Los botones superiores** (LB/RB) recorren las herramientas de la hotbar (y los botones de la hotbar eligen una), sin tocar tu propia ranura.
+- **B** abre el editor. Dentro cancela lo que estás haciendo (un movimiento, una selección, una copia en la mano) y, si no hay nada que cancelar, lo cierra, como Esc. **La cruceta a la izquierda** gira el holograma.
+- **B** también cierra una ventana (ajustes, lista de materiales...), como Esc.
+- **Teclado y mando se asignan por separado.** Con un mando conectado, la lista de Controles de los ajustes de Holoprint tiene dos columnas por acción: la tecla y el botón del mando. Haz clic en la segunda y pulsa el botón que quieras; Reset devuelve los dos a su valor.
+- **El resto de acciones** (espejar, empujar, capas, lista de materiales, construir, copiar, cortar, pegar...) están en los controles de Controlify, en **Holoprint**, listas para darles un botón, y se pueden poner en su menú radial. Copiar, cortar y pegar no necesitan Ctrl con mando.
+- Las leyendas de teclas muestran el botón del mando en vez de la tecla mientras usas el mando.
+
 ## Instalación
 
 1. Instala [Fabric Loader](https://fabricmc.net/) y la Fabric API para Minecraft 26.3.
@@ -103,4 +115,4 @@ En Windows ejecuta `gradlew.bat build` (`./gradlew build` en otros sistemas). El
 
 ## Estado
 
-En desarrollo, sin publicar todavía. Está previsto el soporte para mandos (Controlify).
+En desarrollo, sin publicar todavía.

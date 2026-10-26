@@ -138,18 +138,18 @@ final class CopyTool implements EditorTool {
 	@Override
 	public List<Component> legend() {
 		if (carried == null) {
-			return List.of(Component.translatable("holoprint.hud.copy.pick"),
-				Component.translatable("holoprint.hud.copy.paste", EditorHud.ctrl(EditorKeys.PASTE)));
+			return List.of(EditorHud.line("holoprint.hud.copy.pick"),
+				EditorHud.line("holoprint.hud.copy.paste", EditorHud.ctrl(EditorKeys.PASTE)));
 		}
 		if (moveFrom != null) {
-			return List.of(Component.translatable("holoprint.hud.copy.moving"),
-				Component.translatable("holoprint.hud.move.turn", EditorHud.name(EditorKeys.ROTATE), EditorHud.name(EditorKeys.MIRROR)),
-				Component.translatable("holoprint.hud.move.nudge", EditorHud.name(EditorKeys.FORWARD), EditorHud.name(EditorKeys.UP)),
-				Component.translatable("holoprint.hud.copy.stop", EditorHud.name(EditorKeys.CANCEL)));
+			return List.of(EditorHud.line("holoprint.hud.copy.moving"),
+				EditorHud.line("holoprint.hud.move.turn", EditorHud.name(EditorKeys.ROTATE), EditorHud.name(EditorKeys.MIRROR)),
+				EditorHud.line("holoprint.hud.move.nudge", EditorHud.name(EditorKeys.FORWARD), EditorHud.name(EditorKeys.UP)),
+				EditorHud.line("holoprint.hud.copy.stop", EditorHud.name(EditorKeys.CANCEL)));
 		}
-		return List.of(Component.translatable("holoprint.hud.copy.carrying"),
-			Component.translatable("holoprint.hud.move.turn", EditorHud.name(EditorKeys.ROTATE), EditorHud.name(EditorKeys.MIRROR)),
-			Component.translatable("holoprint.hud.move.nudge", EditorHud.name(EditorKeys.FORWARD), EditorHud.name(EditorKeys.UP)),
-			Component.translatable("holoprint.hud.copy.stop", EditorHud.name(EditorKeys.CANCEL)));
+		return List.of(EditorHud.line("holoprint.hud.copy.carrying"),
+			EditorHud.line("holoprint.hud.move.turn", EditorHud.name(EditorKeys.ROTATE), EditorHud.name(EditorKeys.MIRROR)),
+			EditorHud.line("holoprint.hud.move.nudge", EditorHud.name(EditorKeys.FORWARD), EditorHud.name(EditorKeys.UP)),
+			EditorHud.line("holoprint.hud.copy.stop", EditorHud.name(EditorKeys.CANCEL)));
 	}
 }
