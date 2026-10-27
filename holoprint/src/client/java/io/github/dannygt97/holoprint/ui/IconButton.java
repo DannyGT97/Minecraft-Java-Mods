@@ -31,7 +31,8 @@ public final class IconButton extends Button {
 		extractDefaultSprite(graphics);
 		graphics.fill(x + 2, y + 2, x + size - 2, y + size - 2, active ? 0xAA000000 : 0x66000000);
 		int color = !active ? 0xFF707070 : crossedOut ? 0xFF909090 : lit ? 0xFFFFD166 : 0xFFFFFFFF;
-		Icons.draw(graphics, icon, x, y, size, color);
+		// one pixel per icon pixel for all of them: the eye, the padlock and the bin must look the same size side by side
+		Icons.draw(graphics, icon, x, y, size, color, 1);
 		if (crossedOut) {
 			for (int i = 2; i < size - 2; i++) {
 				graphics.fill(x + i, y + size - 1 - i, x + i + 1, y + size - i, 0xFFFF5555);

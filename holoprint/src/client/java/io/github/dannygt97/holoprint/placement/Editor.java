@@ -49,6 +49,7 @@ public final class Editor {
 		io.github.dannygt97.holoprint.ui.HotbarTools.init();
 		ClientTickEvents.END_CLIENT_TICK.register(Editor::tick);
 		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("holoprint", "editor_help"), EditorHud::render);
+		io.github.dannygt97.holoprint.ui.Notices.init();
 	}
 
 	public static boolean isActive() {

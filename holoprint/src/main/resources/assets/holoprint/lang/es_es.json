@@ -147,6 +147,7 @@
   "holoprint.placements.tip_complete_off": "Completa. Desmarca para volver a editarla",
   "holoprint.placements.configure": "Configurar",
   "holoprint.placements.remove": "Quitar",
+  "holoprint.placements.remove_locked": "«%s» está bloqueada y no se puede quitar. Desbloquéala con el candado.",
   "holoprint.placements.tip_hide": "Visible (clic para ocultarla)",
   "holoprint.placements.tip_show": "Oculta (clic para mostrarla)",
   "holoprint.placements.tip_lock": "Sin bloquear (clic para bloquearla)",

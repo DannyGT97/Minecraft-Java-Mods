@@ -216,7 +216,15 @@ public final class Icons {
 		if (rows == null) {
 			return;
 		}
-		int unit = size >= Math.max(rows.length, rows[0].length()) * 2 + 2 ? 2 : 1;
+		draw(graphics, glyph, x, y, size, color, size >= Math.max(rows.length, rows[0].length()) * 2 + 2 ? 2 : 1);
+	}
+
+	/** Draws the icon centred in a square of the given size, {@code unit} screen pixels per icon pixel (the same for every icon, so a row of buttons looks even). */
+	public static void draw(GuiGraphicsExtractor graphics, String glyph, int x, int y, int size, int color, int unit) {
+		String[] rows = ICONS.get(glyph);
+		if (rows == null) {
+			return;
+		}
 		int width = rows[0].length() * unit;
 		int height = rows.length * unit;
 		int left = x + (size - width) / 2;

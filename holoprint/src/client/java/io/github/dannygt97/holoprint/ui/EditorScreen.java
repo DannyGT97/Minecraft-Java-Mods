@@ -251,6 +251,7 @@ public final class EditorScreen extends Screen implements EditorPanel.Host {
 			panel.render(graphics, px, py + TITLE_HEIGHT, mouseX, mouseY);
 		}
 		super.extractRenderState(graphics, mouseX, mouseY, partialTick);
+		Notices.render(graphics);
 	}
 
 	@Override

@@ -8,6 +8,7 @@ import io.github.dannygt97.holoprint.hologram.Verifier;
 import io.github.dannygt97.holoprint.placement.Editor;
 import io.github.dannygt97.holoprint.placement.PlacementLimits;
 import io.github.dannygt97.holoprint.ui.IconButton;
+import io.github.dannygt97.holoprint.ui.Notices;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -113,6 +114,7 @@ public final class PlacementsPanel extends EditorPanel {
 			}
 			host.add(new IconButton(removeX, rowY + 8, 18, "Bo", Component.translatable("holoprint.placements.remove"), false, false, () -> {
 				if (hologram.locked()) {
+					Notices.warning(Component.translatable("holoprint.placements.remove_locked", nameOf(hologram, index)));
 					return;
 				}
 				HologramRenderer.remove(hologram);
