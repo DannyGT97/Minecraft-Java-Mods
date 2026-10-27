@@ -31,7 +31,7 @@ public final class GhostBlockEntities {
 	record Definition(BlockPos local, BlockState state, CompoundTag data) {}
 
 	/** A created block entity and where it is relative to the hologram's origin. */
-	record Ghost(BlockEntity entity, BlockPos local) {}
+	record Ghost(BlockEntity entity, BlockPos local, Definition definition) {}
 
 	private GhostBlockEntities() {}
 
@@ -55,7 +55,7 @@ public final class GhostBlockEntities {
 				}
 				// It stands at its real place in the world (the renderers cull by distance), and the level is only given to it, never told about it.
 				entity.setLevel(mc.level);
-				out.add(new Ghost(entity, definition.local()));
+				out.add(new Ghost(entity, definition.local(), definition));
 			} catch (RuntimeException ignored) {
 				// A block entity this version cannot build is simply not shown.
 			}

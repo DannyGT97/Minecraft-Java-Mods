@@ -373,7 +373,9 @@ public final class HologramRenderer {
 		if (mesh.builtWithBiomeColors != biomeColors || mesh.fluidTextured != fluidTextures) {
 			return true;
 		}
-		return mesh.tinted && (!hologram.origin().equals(mesh.builtOrigin) || now - mesh.builtAt > TINT_REFRESH_MS);
+		// While it is carried the colours keep the last place they were read at (reading them again at every step costs frames); they catch up once it is put down.
+		boolean moved = !hologram.moving() && !hologram.origin().equals(mesh.builtOrigin);
+		return mesh.tinted && (moved || now - mesh.builtAt > TINT_REFRESH_MS);
 	}
 
 	/** Works out every visible quad of one cell, with the tint it takes from the world at the hologram's current place. */

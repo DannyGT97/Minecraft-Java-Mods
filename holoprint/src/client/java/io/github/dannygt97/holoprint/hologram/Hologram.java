@@ -133,6 +133,12 @@ public final class Hologram {
 	/** The block entities created from them, and the origin they were created for (they stand at real positions). */
 	private List<GhostBlockEntities.Ghost> blockGhosts;
 	private BlockPos blockGhostsAt;
+	/** The definitions that could be made into a block entity (campfires and the like cannot, and are not tried again at every move). */
+	private List<GhostBlockEntities.Definition> workingDefinitions;
+	/** The place the hologram was seen at last, and since when it has stood there: the block entities are made again only once it has settled. */
+	private BlockPos blockGhostsSeen;
+	private long blockGhostsSeenSince;
+	private static final long GHOST_SETTLE_MS = 300L;
 
 	/**
 	 * "Replace all": every block of one kind in this hologram is another block. It changes only what this hologram asks for (never the
@@ -333,11 +339,33 @@ public final class Hologram {
 	/** True when the schematic has chests, signs or similar blocks to show. */
 	public boolean hasBlockEntities() { return !blockEntityDefinitions.isEmpty(); }
 
-	/** The block entities of this hologram at its current place, created the first time they are asked for and again after it moves. */
+	/**
+	 * The block entities of this hologram, created the first time they are asked for and again after it has moved. They are drawn at the
+	 * hologram's current place whatever they were made for, so while it is being carried the old ones are kept and the new ones are made
+	 * once it stands still (making them at every step cost frames).
+	 */
 	List<GhostBlockEntities.Ghost> blockGhosts(net.minecraft.client.Minecraft mc) {
 		List<GhostBlockEntities.Ghost> current = blockGhosts;
+		if (current != null && !origin.equals(blockGhostsAt)) {
+			long now = System.currentTimeMillis();
+			if (!origin.equals(blockGhostsSeen)) {
+				blockGhostsSeen = origin;
+				blockGhostsSeenSince = now;
+				return current;
+			}
+			if (now - blockGhostsSeenSince < GHOST_SETTLE_MS) {
+				return current;
+			}
+		}
 		if (current == null || !origin.equals(blockGhostsAt)) {
-			current = GhostBlockEntities.create(mc, blockEntityDefinitions, origin);
+			current = GhostBlockEntities.create(mc, workingDefinitions != null ? workingDefinitions : blockEntityDefinitions, origin);
+			if (workingDefinitions == null) {
+				List<GhostBlockEntities.Definition> working = new ArrayList<>(current.size());
+				for (GhostBlockEntities.Ghost ghost : current) {
+					working.add(ghost.definition());
+				}
+				workingDefinitions = working;
+			}
 			blockGhosts = current;
 			blockGhostsAt = origin;
 		}
@@ -756,6 +784,7 @@ public final class Hologram {
 		solid = null;
 		ghosts = null;
 		blockGhosts = null;
+		workingDefinitions = null;
 		blockEntityDefinitions = List.of();
 		entityDefinitions = List.of();
 		Rotation rotation = switch (quarterTurns) {
