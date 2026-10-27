@@ -62,7 +62,7 @@ public final class MaterialsPanel extends EditorPanel {
 		List<Verifier.Row> out = new ArrayList<>();
 		if (result != null && result.matches(hologram.origin(), hologram.quarterTurns(), hologram.mirrored())) {
 			for (Verifier.Row row : MaterialsPin.sorted(result.rows)) {
-				if (!onlyMissing || row.missing() > 0) {
+				if (!onlyMissing || row.pending() > 0) {
 					out.add(row);
 				}
 			}
@@ -103,11 +103,6 @@ public final class MaterialsPanel extends EditorPanel {
 		replace.active = hologram != null;
 	}
 
-	/** The blocks of a row the client could not check (they are in chunks it does not have): neither placed nor missing as far as it can tell. */
-	private static long unchecked(Verifier.Row row) {
-		return Math.max(0, row.needed() - row.placed() - row.missing());
-	}
-
 	private void export() {
 		Minecraft mc = Minecraft.getInstance();
 		Verifier.Result result = hologram == null ? null : hologram.verification();
@@ -118,7 +113,7 @@ public final class MaterialsPanel extends EditorPanel {
 		text.append(hologram.displayName()).append('\n');
 		for (Verifier.Row row : MaterialsPin.sorted(result.rows)) {
 			text.append(row.name().getString()).append(": ").append(row.needed()).append(" needed, ").append(row.placed()).append(" placed, ")
-				.append(row.missing()).append(" missing (").append(MaterialsPin.pack(row, row.missing())).append(")").append(unchecked(row) > 0 ? ", " + unchecked(row) + " unchecked (not loaded)" : "").append('\n');
+				.append(row.pending()).append(" missing (").append(MaterialsPin.pack(row, row.pending())).append(")").append(row.unchecked() > 0 ? ", " + row.unchecked() + " unchecked (not loaded)" : "").append('\n');
 		}
 		String base = hologram.displayName().isBlank() ? "materials" : hologram.displayName().replaceAll("[^A-Za-z0-9 _.-]", "_");
 		Path file = SchematicFolder.path().resolve(base + "_materials.txt");
@@ -207,18 +202,18 @@ public final class MaterialsPanel extends EditorPanel {
 				graphics.fill(x + PAD, rowY - 1, x + WIDTH - PAD, rowY + ROW_HEIGHT - 1, 0x22FFFFFF);
 			}
 			MaterialsPin.icon(graphics, MaterialsPin.stackOf(row), nameX, rowY, ICON);
-			text(graphics, font().plainSubstrByWidth(row.name().getString(), (showPack ? packX : neededX) - nameX - 8 - ICON - 3), nameX + ICON + 3, rowY + 1, row.missing() == 0 ? 0xFF70D070 : TEXT);
+			text(graphics, font().plainSubstrByWidth(row.name().getString(), (showPack ? packX : neededX) - nameX - 8 - ICON - 3), nameX + ICON + 3, rowY + 1, row.pending() == 0 ? 0xFF70D070 : TEXT);
 			if (showPack) {
 				MaterialsPin.drawPack(graphics, font(), row, row.needed(), packX + 120, rowY + 1, MUTED, ICON);
 			}
 			right(graphics, String.valueOf(row.needed()), neededX + 52, rowY + 1, TEXT);
 			right(graphics, String.valueOf(row.placed()), placedX + 52, rowY + 1, TEXT);
-			right(graphics, String.valueOf(row.missing()), missingX + 52, rowY + 1, row.missing() == 0 ? 0xFF70D070 : GOLD);
+			right(graphics, String.valueOf(row.pending()), missingX + 52, rowY + 1, row.pending() == 0 ? 0xFF70D070 : GOLD);
 			int have = row.key() instanceof Item item ? carried.getOrDefault(item, 0) : 0;
-			boolean enough = creative || have >= row.missing();
+			boolean enough = creative || have >= row.pending();
 			// In creative mode the items are free, but what is in the inventory is still shown.
 				boolean show = row.key() instanceof Item && (!creative || have > 0);
-				right(graphics, show ? String.valueOf(have) : "-", carriedX + 52, rowY + 1, row.missing() == 0 ? MUTED : enough ? 0xFF70D070 : 0xFFFF7070);
+				right(graphics, show ? String.valueOf(have) : "-", carriedX + 52, rowY + 1, row.pending() == 0 ? MUTED : enough ? 0xFF70D070 : 0xFFFF7070);
 		}
 		if (list.size() > rows) {
 			text(graphics, Component.translatable("holoprint.materials.more", list.size() - rows), x + WIDTH - 150, y + HEAD + rows * ROW_HEIGHT - 1, MUTED);

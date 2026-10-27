@@ -23,6 +23,7 @@ import io.github.dannygt97.holoprint.schematic.BlockStateTags;
 import io.github.dannygt97.holoprint.schematic.LitematicFormat;
 import io.github.dannygt97.holoprint.schematic.Schematic;
 import io.github.dannygt97.holoprint.schematic.SchematicFormats;
+import io.github.dannygt97.holoprint.ui.Notices;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
@@ -256,7 +257,7 @@ public final class PlacementStore {
 			Path file = Path.of(string(entry, "file", ""));
 			if (!Files.isRegularFile(file)) {
 				LOST.add(entry);
-				Editor.message(mc, Component.translatable("holoprint.message.restore_missing", file.getFileName() == null ? file.toString() : file.getFileName().toString()));
+				Notices.warning(Component.translatable("holoprint.message.restore_missing", file.getFileName() == null ? file.toString() : file.getFileName().toString()));
 				continue;
 			}
 			wanted++;

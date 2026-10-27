@@ -197,7 +197,7 @@ public final class MaterialsPin {
 	public static String boxes(List<Verifier.Row> rows, boolean missing) {
 		long stacks = 0;
 		for (Verifier.Row row : rows) {
-			stacks += stacks(row, missing ? row.missing() : row.needed());
+			stacks += stacks(row, missing ? row.pending() : row.needed());
 		}
 		return String.format(java.util.Locale.ROOT, "%.1f", stacks / (double) BOX_SLOTS);
 	}
@@ -245,7 +245,7 @@ public final class MaterialsPin {
 			head.add(Component.translatable("holoprint.hud.pinned.checking"));
 		} else {
 			for (Verifier.Row row : sorted(result.rows)) {
-				if (row.missing() > 0) {
+				if (row.pending() > 0) {
 					rows.add(row);
 				}
 			}
@@ -263,8 +263,8 @@ public final class MaterialsPin {
 		int numberWidth = 0;
 		int packWidth = 0;
 		for (Verifier.Row row : rows) {
-			numberWidth = Math.max(numberWidth, mc.font.width(String.valueOf(row.missing())));
-			packWidth = Math.max(packWidth, packWidth(mc.font, row, row.missing(), ICON));
+			numberWidth = Math.max(numberWidth, mc.font.width(String.valueOf(row.pending())));
+			packWidth = Math.max(packWidth, packWidth(mc.font, row, row.pending(), ICON));
 		}
 		int width = 0;
 		for (Verifier.Row row : rows) {
@@ -309,12 +309,12 @@ public final class MaterialsPin {
 		}
 		for (Verifier.Row row : rows) {
 			int have = row.key() instanceof Item item ? carried.getOrDefault(item, 0) : 0;
-			boolean enough = creative || have >= row.missing();
+			boolean enough = creative || have >= row.pending();
 			icon(graphics, stackOf(row), x, y, ICON);
 			graphics.text(mc.font, mc.font.plainSubstrByWidth(row.name().getString(), NAME_WIDTH), x + ICON + ICON_GAP, y, 0xFFE0E0E0, true);
-			String count = String.valueOf(row.missing());
+			String count = String.valueOf(row.pending());
 			graphics.text(mc.font, count, x + width - mc.font.width(count), y, enough ? 0xFF70D070 : 0xFFFFA040, true);
-			drawPack(graphics, mc.font, row, row.missing(), x + width - numberWidth - 10, y, 0xFF909090, ICON);
+			drawPack(graphics, mc.font, row, row.pending(), x + width - numberWidth - 10, y, 0xFF909090, ICON);
 			y += ROW;
 		}
 		if (more > 0) {

@@ -8,6 +8,7 @@ import io.github.dannygt97.holoprint.hologram.Hologram;
 import io.github.dannygt97.holoprint.hologram.HologramRenderer;
 import io.github.dannygt97.holoprint.schematic.SchematicFormats;
 import io.github.dannygt97.holoprint.schematic.Schematic;
+import io.github.dannygt97.holoprint.ui.Notices;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -27,11 +28,11 @@ public final class PlacementLoader {
 	/** Reads the file in the background and adds it as a placement when done. */
 	public static void load(Minecraft mc, Path file) {
 		if (!isSupported(file)) {
-			Editor.message(mc, Component.translatable("holoprint.message.format_unsupported", file.getFileName().toString()));
+			Notices.error(Component.translatable("holoprint.message.format_unsupported", file.getFileName().toString()));
 			return;
 		}
 		if (HologramRenderer.all().size() >= PlacementLimits.max()) {
-			Editor.message(mc, Component.translatable("holoprint.message.too_many_placements", PlacementLimits.max()));
+			Notices.warning(Component.translatable("holoprint.message.too_many_placements", PlacementLimits.max()));
 			return;
 		}
 		Editor.message(mc, Component.translatable("holoprint.message.loading", file.getFileName().toString()));
@@ -65,7 +66,7 @@ public final class PlacementLoader {
 					Editor.showNewPlacement(mc);
 				});
 			} catch (IOException | RuntimeException e) {
-				mc.execute(() -> Editor.message(mc, Component.translatable("holoprint.message.load_failed", String.valueOf(e.getMessage()))));
+				mc.execute(() -> Notices.error(Component.translatable("holoprint.message.load_failed", String.valueOf(e.getMessage()))));
 			}
 		}, "Holoprint schematic loader").start();
 	}

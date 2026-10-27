@@ -61,7 +61,11 @@ public final class PlacementsPanel extends EditorPanel {
 			host.rebuild();
 		});
 		button(host, x + PAD + 208, y, 90, Component.translatable("holoprint.placements.remove_all"), () -> {
+			long kept = all.stream().filter(Hologram::locked).count();
 			all.stream().filter(h -> !h.locked()).toList().forEach(HologramRenderer::remove);
+			if (kept > 0) {
+				Notices.warning(Component.translatable("holoprint.placements.remove_all_locked", kept));
+			}
 			host.rebuild();
 		});
 

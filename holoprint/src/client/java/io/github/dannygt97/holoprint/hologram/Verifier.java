@@ -45,6 +45,16 @@ public final class Verifier {
 		public long placed() {
 			return built;
 		}
+
+		/** The blocks the client could not check (they are in chunks it does not have, or in another dimension): neither built nor missing as far as it can tell. */
+		public long unchecked() {
+			return Math.max(0, needed - built - missing);
+		}
+
+		/** What is still to be done: the blocks known to be missing plus the ones that cannot be checked from here. */
+		public long pending() {
+			return missing + unchecked();
+		}
 	}
 
 	/** The outcome of one complete check of one hologram. */
