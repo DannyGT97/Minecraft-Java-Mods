@@ -351,7 +351,7 @@ public final class HologramBuilder {
 				continue;
 			}
 			tag.remove("id");
-			tag.remove("Pos");
+			// Its Pos stays in the data: a frame or painting is loaded with its block (block_pos) and refuses one far from where it is loaded.
 			String command = String.format(Locale.ROOT, "summon %s %.4f %.4f %.4f %s", type, pos.getDoubleOr(0, 0.0), pos.getDoubleOr(1, 0.0), pos.getDoubleOr(2, 0.0), tag);
 			if (command.length() <= MAX_COMMAND) {
 				out.add(command);

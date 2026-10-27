@@ -25,6 +25,8 @@ public final class Freecam {
 
 	private static Marker camera;
 	private static Entity previousCamera;
+	/** The player the camera was started for: dying and respawning (or changing dimension) makes the game create another one. */
+	private static Entity owner;
 	private static double speed = 0.9;
 	private static boolean previousSmartCull;
 	/** Game tick of the last "you cannot go further" message, so holding a key does not repeat it. */
@@ -58,12 +60,21 @@ public final class Freecam {
 		}
 		place(ahead.x, ahead.y, ahead.z, mc.player.getYRot(), mc.player.getXRot());
 		previousCamera = mc.getCameraEntity();
+		owner = mc.player;
 		mc.player.input = new FreecamInput(mc.player.input);
 		// The game hides chunks it thinks are not reachable from the camera; a flying camera that goes
 		// through terrain would see holes, so that shortcut is off while it flies.
 		previousSmartCull = mc.smartCull;
 		mc.smartCull = false;
 		mc.setCameraEntity(camera);
+	}
+
+	/**
+	 * True when the player or the world the camera was started in is gone: the player died and came back (a new player, which the game
+	 * creates on respawn), or went through a portal. The camera and the saved input belong to the old one, so the editor has to end.
+	 */
+	public static boolean stale(Minecraft mc) {
+		return camera != null && mc.player != null && mc.level != null && (mc.player != owner || camera.level() != mc.level || mc.player.isDeadOrDying());
 	}
 
 	/**
@@ -104,11 +115,16 @@ public final class Freecam {
 			if (mc.player.input instanceof FreecamInput ours) {
 				mc.player.input = ours.inner();
 			}
-			mc.setCameraEntity(previousCamera != null ? previousCamera : mc.player);
-			mc.smartCull = previousSmartCull;
+			// The camera that was in place before can be the player of before a death: giving the view back to a dead, removed player
+			// leaves the new one frozen (the game only lets the player that is the camera move) and with no hearts.
+			boolean usable = previousCamera != null && !previousCamera.isRemoved() && previousCamera.level() == mc.level
+				&& (!(previousCamera instanceof net.minecraft.client.player.LocalPlayer) || previousCamera == mc.player);
+			mc.setCameraEntity(usable ? previousCamera : mc.player);
 		}
+		mc.smartCull = previousSmartCull;
 		camera = null;
 		previousCamera = null;
+		owner = null;
 	}
 
 	/** Mouse or controller look: turns the camera instead of the player. */

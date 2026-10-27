@@ -354,13 +354,16 @@ public final class HotbarTools {
 				width = Math.max(width, mc.font.width(line));
 			}
 			int height = (legend.size() + 1) * 11 + 4;
-			int x = graphics.guiWidth() / 2 - width / 2;
-			int y = top - 6 - height;
+			// Drawn in the units of the shared HUD text size, so it reads like the legend and the pinned list.
+			HudText.begin(graphics);
+			int x = HudText.width(graphics) / 2 - width / 2;
+			int y = Math.round((top - 6) / HudText.SCALE) - height;
 			graphics.fill(x - 5, y, x + width + 5, y + height, 0xAA000000);
 			graphics.text(mc.font, title, x, y + 3, 0xFFFFD166, true);
 			for (int i = 0; i < legend.size(); i++) {
 				graphics.text(mc.font, legend.get(i), x, y + 3 + 11 * (i + 1), 0xFFFFFFFF, true);
 			}
+			HudText.end(graphics);
 		} else if (age < NAME_MILLIS && !lastName.isEmpty()) {
 			graphics.centeredText(mc.font, lastName, graphics.guiWidth() / 2, top - 14, 0xFFFFFFFF);
 		}

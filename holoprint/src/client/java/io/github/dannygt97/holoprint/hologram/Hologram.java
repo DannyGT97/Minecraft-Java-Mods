@@ -134,21 +134,72 @@ public final class Hologram {
 	private List<GhostBlockEntities.Ghost> blockGhosts;
 	private BlockPos blockGhostsAt;
 
-	public Hologram(Schematic schematic, BlockPos origin) {
-		this(schematic, origin, 0, false);
+	/**
+	 * "Replace all": every block of one kind in this hologram is another block. It changes only what this hologram asks for (never the
+	 * schematic, which other holograms share, nor its file). It is kept in the schematic's own orientation, so turning and mirroring
+	 * the hologram do not disturb it. With {@code anyState} every state of the block {@code from} is replaced by the block of {@code to},
+	 * keeping the properties both have in common (facing, half, waterlogged...); otherwise only the state {@code from} is, by exactly {@code to}.
+	 */
+	public record Replacement(BlockState from, BlockState to, boolean anyState) {
+		boolean matches(BlockState state) {
+			return anyState ? state.getBlock() == from.getBlock() : state.equals(from);
+		}
+
+		BlockState apply(BlockState state) {
+			if (!anyState) {
+				return to;
+			}
+			// the flow of a fluid is the consequence of its sources: with no fluid to take its place it is just gone
+			if (flowing(state) && !(to.getBlock() instanceof LiquidBlock)) {
+				return net.minecraft.world.level.block.Blocks.AIR.defaultBlockState();
+			}
+			BlockState out = to.getBlock().defaultBlockState();
+			for (net.minecraft.world.level.block.state.properties.Property<?> property : state.getProperties()) {
+				out = keep(out, state, property);
+			}
+			return out;
+		}
+
+		@SuppressWarnings({"unchecked", "rawtypes"})
+		private static BlockState keep(BlockState out, BlockState source, net.minecraft.world.level.block.state.properties.Property property) {
+			net.minecraft.world.level.block.state.properties.Property mine = out.getBlock().getStateDefinition().getProperty(property.getName());
+			Comparable value = source.getValue(property);
+			if (mine != null && mine.getValueClass() == property.getValueClass() && mine.getPossibleValues().contains(value)) {
+				return (BlockState) out.setValue(mine, value);
+			}
+			return out;
+		}
 	}
 
-	private Hologram(Schematic schematic, BlockPos origin, int turns, boolean mirror) {
+	/** Whether a state is flowing fluid (not a source): it is what the fluid does, not a block of the schematic. */
+	public static boolean flowing(BlockState state) {
+		return state.getBlock() instanceof LiquidBlock && state.getValue(LiquidBlock.LEVEL) != 0;
+	}
+
+	/** The replacements in force, in the order they were made; each is applied to what the ones before left. */
+	private List<Replacement> replacements = List.of();
+
+	public Hologram(Schematic schematic, BlockPos origin) {
+		this(schematic, origin, 0, false, List.of());
+	}
+
+	private Hologram(Schematic schematic, BlockPos origin, int turns, boolean mirror, List<Replacement> replacements) {
 		this.schematic = schematic;
 		this.origin = origin;
 		this.quarterTurns = turns & 3;
 		this.mirrored = mirror;
+		this.replacements = List.copyOf(replacements);
 		rebuild();
 	}
 
 	/** A hologram already placed and turned, for putting a saved placement back (the heavy work can then be done off the game thread). */
 	public static Hologram placed(Schematic schematic, BlockPos origin, int quarterTurns, boolean mirrored) {
-		return new Hologram(schematic, origin, quarterTurns, mirrored);
+		return new Hologram(schematic, origin, quarterTurns, mirrored, List.of());
+	}
+
+	/** Same as {@link #placed(Schematic, BlockPos, int, boolean)}, with the replacements that were made to it. */
+	public static Hologram placed(Schematic schematic, BlockPos origin, int quarterTurns, boolean mirrored, List<Replacement> replacements) {
+		return new Hologram(schematic, origin, quarterTurns, mirrored, replacements);
 	}
 
 	public Schematic schematic() { return schematic; }
@@ -310,9 +361,108 @@ public final class Hologram {
 
 	/** A second hologram of the same schematic, in the same place and orientation. */
 	public Hologram copy() {
-		Hologram copy = new Hologram(schematic, origin, quarterTurns, mirrored);
+		Hologram copy = new Hologram(schematic, origin, quarterTurns, mirrored, replacements);
 		copy.showEntities = showEntities;
 		return copy;
+	}
+
+	// --- replace all ---
+
+	public List<Replacement> replacements() {
+		return replacements;
+	}
+
+	/** A block as the hologram shows it, back in the schematic's own orientation. */
+	private BlockState unturned(BlockState shown) {
+		if (shown.isAir()) {
+			return shown;
+		}
+		Rotation back = switch (quarterTurns) {
+			case 1 -> Rotation.COUNTERCLOCKWISE_90;
+			case 2 -> Rotation.CLOCKWISE_180;
+			case 3 -> Rotation.CLOCKWISE_90;
+			default -> Rotation.NONE;
+		};
+		BlockState state = shown.rotate(back);
+		return mirrored ? state.mirror(Mirror.FRONT_BACK) : state;
+	}
+
+	/** How many blocks of the hologram a replacement of {@code shown} would change (as the hologram shows them now); of a fluid only its sources count. */
+	public long countBlocks(BlockState shown, boolean anyState) {
+		long count = 0;
+		for (int cell : solidCells) {
+			BlockState state = gridState(cell);
+			if (state != null && !flowing(state) && (anyState ? state.getBlock() == shown.getBlock() : state.equals(shown))) {
+				count++;
+			}
+		}
+		return count;
+	}
+
+	/**
+	 * Makes every block of the hologram that is {@code shown} (a state as the hologram shows it) the block {@code with}. Returns how many blocks
+	 * changed. The hologram is built again and the last check of the world is dropped, because what it asks for is no longer what that check compared.
+	 */
+	public long replaceAll(BlockState shown, BlockState with, boolean anyState) {
+		if (shown.isAir() || (!anyState && shown.equals(with)) || (anyState && shown.getBlock() == with.getBlock())) {
+			return 0;
+		}
+		long count = countBlocks(shown, anyState);
+		if (count == 0) {
+			return 0;
+		}
+		// applied in order, so a block an earlier replacement made can be replaced again
+		List<Replacement> next = new ArrayList<>(replacements);
+		next.add(new Replacement(unturned(shown), unturned(with), anyState));
+		changeReplacements(next);
+		return count;
+	}
+
+	/** Takes back one replacement: its blocks are what the schematic has again. */
+	public void removeReplacement(int index) {
+		if (index < 0 || index >= replacements.size()) {
+			return;
+		}
+		List<Replacement> next = new ArrayList<>(replacements);
+		next.remove(index);
+		changeReplacements(next);
+	}
+
+	/** Takes back every replacement. */
+	public void clearReplacements() {
+		if (!replacements.isEmpty()) {
+			changeReplacements(List.of());
+		}
+	}
+
+	private void changeReplacements(List<Replacement> next) {
+		this.replacements = List.copyOf(next);
+		rebuild();
+		verification(null);
+		Verifier.restart(this);
+	}
+
+	/** Whether the block the schematic has at {@code local} (region coordinates) is not the kind of block {@code now}: its saved data is then not for the new block. */
+	private boolean changedBlock(Region region, BlockPos local, BlockState now) {
+		if (replacements.isEmpty()) {
+			return false;
+		}
+		int x = local.getX(), y = local.getY(), z = local.getZ();
+		if (x < 0 || y < 0 || z < 0 || x >= region.sizeX() || y >= region.sizeY() || z >= region.sizeZ()) {
+			return false;
+		}
+		return region.palette().get(region.paletteIndex(x, y, z)).getBlock() != now.getBlock();
+	}
+
+	/** The block the schematic's block {@code original} is in this hologram: each replacement, in the order they were made, applied to what the one before left. */
+	private BlockState substitute(BlockState original) {
+		BlockState state = original;
+		for (Replacement replacement : replacements) {
+			if (replacement.matches(state)) {
+				state = replacement.apply(state);
+			}
+		}
+		return state;
 	}
 
 	/** True when {@code world} is a block of this hologram that has an exposed face. */
@@ -685,11 +835,18 @@ public final class Hologram {
 		boolean[] solids = new boolean[16];
 		int[] fluids = new int[16];
 		int[] levels = new int[16];
+		List<BlockPos> bare = new ArrayList<>();
 		for (Region region : schematic.regions()) {
 			List<BlockState> palette = region.palette();
 			int[] mapped = new int[palette.size()];
+			boolean[] otherBlock = new boolean[mapped.length];
 			for (int i = 0; i < mapped.length; i++) {
 				BlockState state = palette.get(i);
+				if (!state.isAir() && !replacements.isEmpty()) {
+					BlockState replaced = substitute(state);
+					otherBlock[i] = replaced.getBlock() != state.getBlock();
+					state = replaced;
+				}
 				if (state.isAir()) {
 					mapped[i] = 0;
 					continue;
@@ -737,6 +894,10 @@ public final class Hologram {
 							solid.add(cell);
 						}
 						grid[cell] = number;
+						if (otherBlock[region.paletteIndex(x, y, z)] && GhostBlockEntities.isBlockEntity(states.get(number))) {
+							// a block that became a chest, a sign...: it has no saved data, but it is drawn
+							bare.add(new BlockPos(lx, ly, lz));
+						}
 					}
 				}
 			}
@@ -766,9 +927,15 @@ public final class Hologram {
 					continue;
 				}
 				int number = grid[(ly * sizeZ + lz) * sizeX + lx];
-				if (number != 0 && GhostBlockEntities.isBlockEntity(states.get(number))) {
+				if (number != 0 && GhostBlockEntities.isBlockEntity(states.get(number)) && !changedBlock(region, saved.getKey(), states.get(number))) {
 					blockDefinitions.add(new GhostBlockEntities.Definition(new BlockPos(lx, ly, lz), states.get(number), saved.getValue()));
 				}
+			}
+		}
+		for (BlockPos cell : bare) {
+			int number = grid[(cell.getY() * sizeZ + cell.getZ()) * sizeX + cell.getX()];
+			if (number != 0 && GhostBlockEntities.isBlockEntity(states.get(number))) {
+				blockDefinitions.add(new GhostBlockEntities.Definition(cell, states.get(number), new CompoundTag()));
 			}
 		}
 		blockEntityDefinitions = blockDefinitions;

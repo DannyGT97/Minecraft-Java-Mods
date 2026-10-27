@@ -117,7 +117,7 @@ public final class SelectionActions {
 		}
 		Hologram hologram = HologramRenderer.active();
 		if (hologram != null) {
-			Clipboard.set(hologram.schematic(), hologram.quarterTurns(), hologram.mirrored());
+			Clipboard.set(hologram);
 			Editor.message(mc, Component.translatable("holoprint.message.copied_hologram"));
 			return;
 		}

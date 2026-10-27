@@ -15,6 +15,7 @@ import io.github.dannygt97.holoprint.schematic.SchematicFolder;
 import io.github.dannygt97.holoprint.ui.MaterialsPin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -28,12 +29,16 @@ public final class MaterialsPanel extends EditorPanel {
 	private static final int NOMINAL_WIDTH = 640;
 	private static final int ROW_HEIGHT = 13;
 	private static final int HEAD = 54;
+	/** The size of the item icons. */
+	private static final int ICON = 11;
+	/** The least room the names must keep for the column of boxes to be shown. */
+	private static final int MIN_NAME = 70;
 
 	/** Kept between openings. */
 	private static boolean onlyMissing = true;
 
 	private final int WIDTH = Math.min(NOMINAL_WIDTH, availableWidth());
-	private final int rows = Math.max(4, Math.min(24, (available() - 26 - HEAD - 60) / ROW_HEIGHT));
+	private final int rows = Math.max(4, Math.min(24, (available() - 26 - HEAD - 84) / ROW_HEIGHT));
 	private final Hologram hologram = HologramRenderer.active();
 	private int scroll;
 
@@ -49,7 +54,7 @@ public final class MaterialsPanel extends EditorPanel {
 
 	@Override
 	public int height() {
-		return 26 + HEAD + rows * ROW_HEIGHT + 60;
+		return 26 + HEAD + rows * ROW_HEIGHT + 84;
 	}
 
 	private List<Verifier.Row> shown() {
@@ -94,6 +99,8 @@ public final class MaterialsPanel extends EditorPanel {
 				MaterialsPin.togglePinned();
 				host.rebuild();
 			});
+		Button replace = button(host, x + PAD, footerY + 48, WIDTH - 2 * PAD, Component.translatable("holoprint.materials.replace"), () -> host.open(new ReplacePanel()));
+		replace.active = hologram != null;
 	}
 
 	/** The blocks of a row the client could not check (they are in chunks it does not have): neither placed nor missing as far as it can tell. */
@@ -111,7 +118,7 @@ public final class MaterialsPanel extends EditorPanel {
 		text.append(hologram.displayName()).append('\n');
 		for (Verifier.Row row : MaterialsPin.sorted(result.rows)) {
 			text.append(row.name().getString()).append(": ").append(row.needed()).append(" needed, ").append(row.placed()).append(" placed, ")
-				.append(row.missing()).append(" missing").append(unchecked(row) > 0 ? ", " + unchecked(row) + " unchecked (not loaded)" : "").append('\n');
+				.append(row.missing()).append(" missing (").append(MaterialsPin.pack(row, row.missing())).append(")").append(unchecked(row) > 0 ? ", " + unchecked(row) + " unchecked (not loaded)" : "").append('\n');
 		}
 		String base = hologram.displayName().isBlank() ? "materials" : hologram.displayName().replaceAll("[^A-Za-z0-9 _.-]", "_");
 		Path file = SchematicFolder.path().resolve(base + "_materials.txt");
@@ -151,7 +158,8 @@ public final class MaterialsPanel extends EditorPanel {
 			return;
 		}
 		long percent = result.needed == 0 ? 100 : result.placed * 100 / result.needed;
-		text(graphics, Component.translatable("holoprint.materials.summary", result.placed, result.needed, percent, result.missing), x + PAD, y + 13, TEXT);
+		text(graphics, font().plainSubstrByWidth(Component.translatable("holoprint.materials.summary", result.placed, result.needed, percent, result.missing).getString()
+			+ "   " + Component.translatable("holoprint.materials.boxes", MaterialsPin.boxes(result.rows, true)).getString(), WIDTH - 2 * PAD), x + PAD, y + 13, TEXT);
 		StringBuilder notes = new StringBuilder();
 		if (result.wrongCount > 0) {
 			notes.append(Component.translatable("holoprint.materials.wrong", result.wrongCount).getString()).append("   ");
@@ -169,9 +177,15 @@ public final class MaterialsPanel extends EditorPanel {
 			text(graphics, font().plainSubstrByWidth(notes.toString(), WIDTH - 2 * PAD), x + PAD, y + 25, 0xFFFFA040);
 		}
 
+		int packX = x + WIDTH - 380;
 		int nameX = x + PAD, neededX = x + WIDTH - 250, placedX = x + WIDTH - 190, missingX = x + WIDTH - 130, carriedX = x + WIDTH - 70;
+		// In a narrow window the column of boxes would leave no room for the names, so it is left out.
+		boolean showPack = packX - nameX - 8 - ICON - 3 >= MIN_NAME;
 		int headY = y + 40;
 		text(graphics, Component.translatable("holoprint.materials.col_block"), nameX, headY, MUTED);
+		if (showPack) {
+			right(graphics, Component.translatable("holoprint.materials.col_pack").getString(), packX + 120, headY, MUTED);
+		}
 		right(graphics, Component.translatable("holoprint.materials.col_needed").getString(), neededX + 52, headY, MUTED);
 		right(graphics, Component.translatable("holoprint.materials.col_placed").getString(), placedX + 52, headY, MUTED);
 		right(graphics, Component.translatable("holoprint.materials.col_missing").getString(), missingX + 52, headY, MUTED);
@@ -192,7 +206,11 @@ public final class MaterialsPanel extends EditorPanel {
 			if (i % 2 == 0) {
 				graphics.fill(x + PAD, rowY - 1, x + WIDTH - PAD, rowY + ROW_HEIGHT - 1, 0x22FFFFFF);
 			}
-			text(graphics, font().plainSubstrByWidth(row.name().getString(), neededX - nameX - 8), nameX, rowY + 1, row.missing() == 0 ? 0xFF70D070 : TEXT);
+			MaterialsPin.icon(graphics, MaterialsPin.stackOf(row), nameX, rowY, ICON);
+			text(graphics, font().plainSubstrByWidth(row.name().getString(), (showPack ? packX : neededX) - nameX - 8 - ICON - 3), nameX + ICON + 3, rowY + 1, row.missing() == 0 ? 0xFF70D070 : TEXT);
+			if (showPack) {
+				MaterialsPin.drawPack(graphics, font(), row, row.needed(), packX + 120, rowY + 1, MUTED, ICON);
+			}
 			right(graphics, String.valueOf(row.needed()), neededX + 52, rowY + 1, TEXT);
 			right(graphics, String.valueOf(row.placed()), placedX + 52, rowY + 1, TEXT);
 			right(graphics, String.valueOf(row.missing()), missingX + 52, rowY + 1, row.missing() == 0 ? 0xFF70D070 : GOLD);

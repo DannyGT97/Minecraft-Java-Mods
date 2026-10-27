@@ -12,12 +12,14 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
 
 /** The key legend shown in a corner of the screen while the editor is open. */
 public final class EditorHud {
 	private static final int MARGIN = 6;
 	private static final int LINE = 11;
-	private static final float MAX_SCALE = 0.8F;
+	/** How far the continuation of a wrapped line is pushed in. */
+	private static final int INDENT = 6;
 	private static final int PANEL_SHADE = 0x88000000;
 
 	private EditorHud() {}
@@ -127,20 +129,37 @@ public final class EditorHud {
 		} else if (HologramRenderer.isTrimmed()) {
 			lines.add(Component.translatable("holoprint.hud.trimmed", HologramRenderer.lastDrawn, HologramRenderer.lastInView).withStyle(ChatFormatting.YELLOW));
 		}
+		// A long line is wrapped so the legend never runs under the pinned materials list at the right.
+		int limit = Math.max(160, Math.round((io.github.dannygt97.holoprint.ui.MaterialsPin.leftEdge(graphics) - 2 * MARGIN) / io.github.dannygt97.holoprint.ui.HudText.SCALE) - 10);
+		List<List<FormattedCharSequence>> wrapped = new java.util.ArrayList<>();
 		int width = 0;
+		int rows = 0;
 		for (Component line : lines) {
-			width = Math.max(width, mc.font.width(line));
+			List<FormattedCharSequence> parts = mc.font.split(line, limit);
+			if (parts.isEmpty()) {
+				parts = List.of(FormattedCharSequence.EMPTY);
+			}
+			wrapped.add(parts);
+			rows += parts.size();
+			for (int i = 0; i < parts.size(); i++) {
+				width = Math.max(width, mc.font.width(parts.get(i)) + (i > 0 ? INDENT : 0));
+			}
 		}
-		int height = lines.size() * LINE + 6;
-		// The legend is drawn smaller the more of the screen it would take (a big GUI scale makes it huge).
-		float scale = Math.max(0.5F, Math.min(MAX_SCALE, Math.min(0.40F * graphics.guiWidth() / (width + 10), 0.30F * (graphics.guiHeight()) / height)));
+		int height = rows * LINE + 6;
+		// The same size as the other texts Holoprint draws; only a legend taller than the screen is squeezed further.
+		float scale = Math.min(io.github.dannygt97.holoprint.ui.HudText.SCALE, 0.95F * graphics.guiHeight() / height);
 		graphics.pose().pushMatrix();
 		graphics.pose().translate(MARGIN, MARGIN);
 		graphics.pose().scale(scale, scale);
 		graphics.fill(0, 0, width + 10, height, PANEL_SHADE);
-		for (int i = 0; i < lines.size(); i++) {
+		int y = 4;
+		for (int i = 0; i < wrapped.size(); i++) {
 			int color = i == 0 ? 0xFFFFD166 : 0xFFFFFFFF;
-			graphics.text(mc.font, lines.get(i), 5, 4 + i * LINE, color, true);
+			List<FormattedCharSequence> parts = wrapped.get(i);
+			for (int j = 0; j < parts.size(); j++) {
+				graphics.text(mc.font, parts.get(j), 5 + (j > 0 ? INDENT : 0), y, color, true);
+				y += LINE;
+			}
 		}
 		graphics.pose().popMatrix();
 	}

@@ -296,6 +296,11 @@ public final class EditorScreen extends Screen implements EditorPanel.Host {
 		// or close a window, which changes what is under the pointer, and the same click must not then
 		// fall through to the world (it would, for instance, remove the selection).
 		boolean overUi = getChildAt(event.x(), event.y()).isPresent() || inPanel(event.x(), event.y());
+		boolean onWidget = getChildAt(event.x(), event.y()).isPresent();
+		EditorPanel openPanel = panels.peek();
+		if (!onWidget && openPanel != null && inPanel(event.x(), event.y()) && openPanel.mouseClicked(this, event.x(), event.y(), event.button())) {
+			return true;
+		}
 		if (!super.mouseClicked(event, doubleClick)) {
 			setFocused(null);
 		}
@@ -312,13 +317,33 @@ public final class EditorScreen extends Screen implements EditorPanel.Host {
 	}
 
 	@Override
+	public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+		EditorPanel panel = panels.peek();
+		if (panel != null && panel.mouseDragged(this, event.x(), event.y())) {
+			return true;
+		}
+		return super.mouseDragged(event, dx, dy);
+	}
+
+	@Override
+	public boolean mouseReleased(MouseButtonEvent event) {
+		EditorPanel panel = panels.peek();
+		if (panel != null) {
+			panel.mouseReleased(this);
+		}
+		return super.mouseReleased(event);
+	}
+
+	@Override
 	public boolean mouseScrolled(double x, double y, double scrollX, double scrollY) {
 		if (super.mouseScrolled(x, y, scrollX, scrollY)) {
 			return true;
 		}
 		EditorPanel panel = panels.peek();
-		if (panel != null && inPanel(x, y)) {
-			return panel.mouseScrolled(this, scrollY);
+		if (panel != null) {
+			// with a window open the wheel belongs to it wherever the pointer is (the speed would change behind it otherwise)
+			panel.mouseScrolled(this, scrollY);
+			return true;
 		}
 		Freecam.changeSpeed(scrollY);
 		return true;

@@ -13,10 +13,12 @@ import io.github.dannygt97.holoprint.hologram.Verifier;
 import io.github.dannygt97.holoprint.placement.EditorKeys;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 /**
  * The material list of the active placement kept on the screen, in the top right corner: what is still missing, in the order chosen for the
@@ -52,7 +54,13 @@ public final class MaterialsPin {
 	private static final int ROW = 10;
 	private static final int MAX_ROWS = 14;
 	private static final int NAME_WIDTH = 130;
-	private static final int TOP = 30;
+	/** The size of the item icons of the rows and the gap after them. */
+	private static final int ICON = 9;
+	private static final int ICON_GAP = 2;
+	/** First line of text; its background starts 3 above, level with the top of the editor's legend. */
+	private static final int TOP = 10;
+	/** The widest the title lines may make the list. */
+	private static final int HEAD_WIDTH = 220;
 
 	private MaterialsPin() {}
 
@@ -84,6 +92,116 @@ public final class MaterialsPin {
 		return out;
 	}
 
+	/** Slots of a shulker box. */
+	private static final int BOX_SLOTS = 27;
+
+	private static long stackSize(Verifier.Row row) {
+		return row.key() instanceof Item item ? Math.max(1, item.getDefaultMaxStackSize()) : 64;
+	}
+
+	/** The slots a count takes up, each holding as many as the item stacks to. */
+	public static long stacks(Verifier.Row row, long count) {
+		long size = stackSize(row);
+		return (count + size - 1) / size;
+	}
+
+	/** A piece of a count in boxes, stacks and loose items; a box is drawn as the icon of a shulker box after its number. */
+	private record Part(String text, boolean box) {}
+
+	private static List<Part> parts(Verifier.Row row, long count) {
+		long size = stackSize(row);
+		long stacks = count / size;
+		long boxes = stacks / BOX_SLOTS;
+		long inBox = stacks % BOX_SLOTS;
+		long loose = count % size;
+		List<Part> parts = new ArrayList<>();
+		if (boxes > 0) {
+			parts.add(new Part(String.valueOf(boxes), true));
+		}
+		if (inBox > 0) {
+			parts.add(new Part(Component.translatable("holoprint.pack.stack", inBox).getString(), false));
+		}
+		if (loose > 0) {
+			parts.add(new Part(String.valueOf(loose), false));
+		}
+		return parts;
+	}
+
+	/** A count as full shulker boxes, stacks and loose items ("12 box + 5 st + 33"), left out where zero; empty for nothing. For text, the lists draw icons instead. */
+	public static String pack(Verifier.Row row, long count) {
+		List<String> out = new ArrayList<>();
+		for (Part part : parts(row, count)) {
+			out.add(part.box ? Component.translatable("holoprint.pack.box", part.text).getString() : part.text);
+		}
+		return String.join(" + ", out);
+	}
+
+	/** How wide {@link #drawPack} is. */
+	public static int packWidth(Font font, Verifier.Row row, long count, int icon) {
+		int width = 0;
+		List<Part> parts = parts(row, count);
+		for (int i = 0; i < parts.size(); i++) {
+			width += (i > 0 ? font.width(" + ") : 0) + font.width(parts.get(i).text) + (parts.get(i).box ? ICON_GAP + icon : 0);
+		}
+		return width;
+	}
+
+	/** {@link #pack} as the lists show it, ending at `rightEdge`: the boxes as the icon of a shulker box (its default colour) after their number. */
+	public static void drawPack(GuiGraphicsExtractor graphics, Font font, Verifier.Row row, long count, int rightEdge, int y, int color, int icon) {
+		int x = rightEdge - packWidth(font, row, count, icon);
+		List<Part> parts = parts(row, count);
+		for (int i = 0; i < parts.size(); i++) {
+			if (i > 0) {
+				graphics.text(font, " + ", x, y, color, true);
+				x += font.width(" + ");
+			}
+			Part part = parts.get(i);
+			graphics.text(font, part.text, x, y, color, true);
+			x += font.width(part.text);
+			if (part.box) {
+				icon(graphics, box(), x + ICON_GAP, y + (9 - icon) / 2, icon);
+				x += ICON_GAP + icon;
+			}
+		}
+	}
+
+	private static ItemStack box;
+	private static final Map<Item, ItemStack> STACKS = new HashMap<>();
+
+	/** The shulker box of the default colour (made when first needed: the items have no components yet while this class loads). */
+	private static ItemStack box() {
+		if (box == null) {
+			box = new ItemStack(Items.SHULKER_BOX);
+		}
+		return box;
+	}
+
+	/** The stack that stands for a row (nothing where the row is not an item). */
+	public static ItemStack stackOf(Verifier.Row row) {
+		return row.key() instanceof Item item ? STACKS.computeIfAbsent(item, ItemStack::new) : ItemStack.EMPTY;
+	}
+
+	/** An item icon `size` pixels wide (it is drawn 16 wide and scaled). */
+	public static void icon(GuiGraphicsExtractor graphics, ItemStack stack, int x, int y, int size) {
+		if (stack.isEmpty()) {
+			return;
+		}
+		graphics.pose().pushMatrix();
+		graphics.pose().translate(x, y);
+		graphics.pose().scale(size / 16F, size / 16F);
+		graphics.fakeItem(stack, 0, 0);
+		graphics.pose().popMatrix();
+	}
+
+	/** How many shulker boxes the whole of the rows' counts would fill, loose items counted as the stacks they take up ("35.3"). */
+	public static String boxes(List<Verifier.Row> rows, boolean missing) {
+		long stacks = 0;
+		for (Verifier.Row row : rows) {
+			stacks += stacks(row, missing ? row.missing() : row.needed());
+		}
+		return String.format(java.util.Locale.ROOT, "%.1f", stacks / (double) BOX_SLOTS);
+	}
+
 	/** How many of each item the player carries. */
 	public static Map<Item, Integer> carried() {
 		Map<Item, Integer> counts = new HashMap<>();
@@ -108,12 +226,14 @@ public final class MaterialsPin {
 		}
 	}
 
-	public static void render(GuiGraphicsExtractor graphics, DeltaTracker tracker) {
-		Minecraft mc = Minecraft.getInstance();
+	/** What the pinned list shows and how big it is, or null when it is not on the screen. */
+	private record Layout(Hologram hologram, List<Component> head, List<Verifier.Row> rows, long more, int numberWidth, int packWidth, int width, int height) {}
+
+	private static Layout layout(Minecraft mc, GuiGraphicsExtractor graphics) {
 		HoloprintConfig config = HoloprintConfig.get();
 		Hologram hologram = HologramRenderer.active();
 		if (!config.materialsPinned || !config.showHolograms || hologram == null || mc.player == null || mc.gui.screen() != null) {
-			return;
+			return null;
 		}
 		Verifier.request(hologram);
 		Verifier.Result result = hologram.verification();
@@ -131,29 +251,56 @@ public final class MaterialsPin {
 			}
 			if (rows.isEmpty()) {
 				head.add(Component.translatable("holoprint.hud.pinned.done"));
+			} else {
+				head.add(Component.translatable("holoprint.hud.pinned.boxes", boxes(rows, true)));
 			}
-			int limit = Math.max(3, Math.min(MAX_ROWS, (graphics.guiHeight() - TOP - 60) / ROW));
+			int limit = Math.max(3, Math.min(MAX_ROWS, (HudText.height(graphics) - TOP - 60) / ROW));
 			if (rows.size() > limit) {
 				more = rows.size() - limit;
 				rows = rows.subList(0, limit);
 			}
 		}
-		Map<Item, Integer> carried = carried();
-		boolean creative = mc.player.hasInfiniteMaterials();
 		int numberWidth = 0;
+		int packWidth = 0;
 		for (Verifier.Row row : rows) {
 			numberWidth = Math.max(numberWidth, mc.font.width(String.valueOf(row.missing())));
+			packWidth = Math.max(packWidth, packWidth(mc.font, row, row.missing(), ICON));
 		}
 		int width = 0;
-		for (Component line : head) {
-			width = Math.max(width, mc.font.width(line));
-		}
 		for (Verifier.Row row : rows) {
-			width = Math.max(width, Math.min(NAME_WIDTH, mc.font.width(row.name())) + 10 + numberWidth);
+			width = Math.max(width, ICON + ICON_GAP + Math.min(NAME_WIDTH, mc.font.width(row.name())) + 10 + packWidth + 10 + numberWidth);
 		}
-		width = Math.min(width, NAME_WIDTH + 10 + numberWidth);
+		// The title lines (the placement's name) may make the list wider than the rows, up to a limit.
+		for (Component line : head) {
+			width = Math.max(width, Math.min(HEAD_WIDTH, mc.font.width(line)));
+		}
 		int height = (head.size() + rows.size() + (more > 0 ? 1 : 0)) * ROW + 4;
-		int x = graphics.guiWidth() - width - 8;
+		return new Layout(hologram, head, rows, more, numberWidth, packWidth, width, height);
+	}
+
+	/** Where the pinned list starts, in the game's GUI units, or the width of the screen when it is not shown; the legend keeps to the left of it. */
+	public static int leftEdge(GuiGraphicsExtractor graphics) {
+		Layout layout = layout(Minecraft.getInstance(), graphics);
+		if (layout == null) {
+			return graphics.guiWidth();
+		}
+		return Math.round((HudText.width(graphics) - layout.width() - 8 - 4) * HudText.SCALE);
+	}
+
+	public static void render(GuiGraphicsExtractor graphics, DeltaTracker tracker) {
+		Minecraft mc = Minecraft.getInstance();
+		Layout layout = layout(mc, graphics);
+		if (layout == null) {
+			return;
+		}
+		List<Component> head = layout.head();
+		List<Verifier.Row> rows = layout.rows();
+		long more = layout.more();
+		int numberWidth = layout.numberWidth(), width = layout.width(), height = layout.height();
+		Map<Item, Integer> carried = carried();
+		boolean creative = mc.player.hasInfiniteMaterials();
+		HudText.begin(graphics);
+		int x = HudText.width(graphics) - width - 8;
 		int y = TOP;
 		graphics.fill(x - 4, y - 3, x + width + 4, y - 3 + height + 2, 0x88000000);
 		for (int i = 0; i < head.size(); i++) {
@@ -163,13 +310,16 @@ public final class MaterialsPin {
 		for (Verifier.Row row : rows) {
 			int have = row.key() instanceof Item item ? carried.getOrDefault(item, 0) : 0;
 			boolean enough = creative || have >= row.missing();
-			graphics.text(mc.font, mc.font.plainSubstrByWidth(row.name().getString(), NAME_WIDTH), x, y, 0xFFE0E0E0, true);
+			icon(graphics, stackOf(row), x, y, ICON);
+			graphics.text(mc.font, mc.font.plainSubstrByWidth(row.name().getString(), NAME_WIDTH), x + ICON + ICON_GAP, y, 0xFFE0E0E0, true);
 			String count = String.valueOf(row.missing());
 			graphics.text(mc.font, count, x + width - mc.font.width(count), y, enough ? 0xFF70D070 : 0xFFFFA040, true);
+			drawPack(graphics, mc.font, row, row.missing(), x + width - numberWidth - 10, y, 0xFF909090, ICON);
 			y += ROW;
 		}
 		if (more > 0) {
 			graphics.text(mc.font, Component.translatable("holoprint.hud.pinned.more", more), x, y, 0xFF909090, true);
 		}
+		HudText.end(graphics);
 	}
 }

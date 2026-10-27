@@ -10,6 +10,8 @@ Turn schematics into holograms you can fly around, move, check and build from. L
 
 **Client-side only.** It does not need to be installed on the server.
 
+> **Beta (26.3-beta.1).** The version number carries the Minecraft version it is made for. It is usable, but expect rough edges: please report what you find on [GitHub](https://github.com/DannyGT97/Minecraft-Java-Mods/issues).
+
 ![A schematic shown as a hologram in the world](https://raw.githubusercontent.com/DannyGT97/Minecraft-Java-Mods/main/holoprint/docs/images/01-hologram.jpg)
 
 ## What you can do
@@ -20,8 +22,9 @@ Turn schematics into holograms you can fly around, move, check and build from. L
 - **Move, rotate and mirror** the hologram: it follows your pointer and a click pins it.
 - **Check your build:** what is missing shows as a ghost, and a wrong block is outlined in red.
 - **Place blocks with help:** aim at the hologram and place, with the right state and orientation.
-- **Look at one layer at a time,** and step up and down through the build.
-- **Read the material list** of every placement.
+- **Look at one layer at a time,** and step up and down through the build (each placement keeps its own).
+- **Read the material list** of every placement, sortable and pinnable on the screen.
+- **Replace blocks** of the hologram with another block (or air, water, lava) to try another palette.
 - **Work with several placements,** copy and paste areas, and save a selection as a schematic.
 - **Build a placement in one go** (needs cheats), or move a real area with `/clone`.
 
@@ -59,6 +62,29 @@ The keys for each tool show up above the hotbar, using whatever you have set in 
 What already matches the hologram disappears; what is left stays as a ghost; a block that is not the right one is outlined in red.
 
 ![A half-built hut with two wrong blocks outlined in red](https://raw.githubusercontent.com/DannyGT97/Minecraft-Java-Mods/main/holoprint/docs/images/09-verify.jpg)
+
+## Materials always in sight
+
+Pin the material list to the screen (top right) and it keeps counting while you play, even outside the editor: what is still missing and how much of it you already carry.
+
+![The material list pinned on the screen](https://raw.githubusercontent.com/DannyGT97/Minecraft-Java-Mods/main/holoprint/docs/images/10-pinned-materials.jpg)
+
+## Try another palette
+
+Open the material list, press **Replace blocks…**, pick a material and choose the new block (type to search; air, water and lava work too). The row reads `Old xN → New xN`, **Keep facing** keeps stairs and logs pointing the same way, and **Restore original** undoes it.
+
+| | |
+|---|---|
+| ![Replace blocks window](https://raw.githubusercontent.com/DannyGT97/Minecraft-Java-Mods/main/holoprint/docs/images/11-replace-window.jpg) | ![Picking the new block](https://raw.githubusercontent.com/DannyGT97/Minecraft-Java-Mods/main/holoprint/docs/images/12-replace-picker.jpg) |
+| ![A replacement ready to apply](https://raw.githubusercontent.com/DannyGT97/Minecraft-Java-Mods/main/holoprint/docs/images/13-replace-ready.jpg) | ![The result: blocks already built with the old material show as wrong](https://raw.githubusercontent.com/DannyGT97/Minecraft-Java-Mods/main/holoprint/docs/images/14-replace-result.jpg) |
+
+It only changes the hologram, never your world or the schematic file.
+
+## Settings
+
+Everything can be tuned from Mod Menu, or from the settings tool on the hotbar.
+
+![Settings](https://raw.githubusercontent.com/DannyGT97/Minecraft-Java-Mods/main/holoprint/docs/images/08-settings.jpg)
 
 ## Quick start
 

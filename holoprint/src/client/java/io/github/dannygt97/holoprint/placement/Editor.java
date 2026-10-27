@@ -295,6 +295,10 @@ public final class Editor {
 
 	private static void tick(Minecraft mc) {
 		EditorKeys.migrateOldDefaults(mc);
+		// Dying (and coming back in the bed) creates a new player: the editor ends, giving the view and the controls to the one that exists now.
+		if (active && Freecam.stale(mc)) {
+			stop(mc);
+		}
 		Freecam.keepInput(mc);
 		if (mc.level == null || mc.player == null) {
 			if (active) {

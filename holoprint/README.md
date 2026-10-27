@@ -16,9 +16,10 @@ Holoprint is client-only. It does not need to be installed on the server.
 - **Move, rotate and mirror.** The hologram follows your pointer, a click pins it, and `R` / `Z` rotate and mirror it.
 - **Checks what you have built.** Blocks that are missing show as ghosts; blocks that are wrong are outlined in red.
 - **Assisted placement.** Aim at the hologram and place: the block goes in with the right state and orientation.
-- **Layers.** Look at one layer at a time, and step up and down through the build.
+- **Layers.** Look at one layer at a time, and step up and down through the build. Each placement keeps its own layer.
 - **Material list** for every placement, sortable (most or fewest missing or needed, by name) and pinnable on the screen (top right, works outside the editor too; assign a key in the settings).
 - **Several placements at once.** Each one can be hidden, locked or removed on its own. A placement is marked as complete when everything is built (or by hand, with its box in the list): it stops being drawn and stays in the list as a reference; untick it to edit it again.
+- **Replace blocks.** Swap a material of the hologram for another block (or for air, water or lava) to see the build in a different palette before you start. It only changes the hologram, never the world or the file.
 - **Selection, copy, paste, delete and save.** Select an area of the world, copy it, paste it as a new hologram, or save it as a schematic.
 - **Build (needs cheats).** Build a whole placement in one go, or move a real area with `/clone`.
 
@@ -68,6 +69,23 @@ As you build, what already matches the hologram disappears and what is left stay
 
 The game only knows the world near the player, and the free camera can look much farther. What is out of that reach cannot be checked: the placement's row says how many blocks are unchecked and, if you know it is done, its "Mark as complete" box finishes it.
 
+## Pinned materials
+
+Pin the material list to the screen (top right) and it keeps counting as you play, even outside the editor: what is still missing, and how much of it you already carry.
+
+![The material list pinned on the screen](docs/images/10-pinned-materials.jpg)
+
+## Replace blocks
+
+Want the same build in another wood? Open the material list of a placement, press **Replace blocks…**, pick a material and press **Choose new block** (type to search; water and lava are there too), then **Replace all**. **Remove all** swaps it for air. The row shows `Old xN → New xN`, **Keep facing** keeps stairs, logs and the like pointing the same way, and **Restore original** undoes it.
+
+| | |
+|---|---|
+| ![Replace blocks window](docs/images/11-replace-window.jpg) | ![Picking the new block](docs/images/12-replace-picker.jpg) |
+| ![A replacement ready to apply](docs/images/13-replace-ready.jpg) | ![The result: the world still has the old blocks, so they show as wrong](docs/images/14-replace-result.jpg) |
+
+It only changes the hologram: it never touches the world or the schematic file. Blocks you had already built with the old material now show as wrong (red), so you can fix them by hand.
+
 ## Controls
 
 All of them are normal key bindings, so you can change them in the game's controls screen.
@@ -106,13 +124,13 @@ With [Controlify](https://modrinth.com/mod/controlify) installed, Holoprint work
 ## Install
 
 1. Install [Fabric Loader](https://fabricmc.net/) and the Fabric API for Minecraft 26.3.
-2. Put `holoprint-26.3.jar` in your `mods` folder.
+2. Put `holoprint-26.3-beta.1.jar` in your `mods` folder.
 3. Put your schematics in the `schematics` folder of the game and press `M` in a world.
 
 ## Build from source
 
-On Windows run `gradlew.bat build` (`./gradlew build` elsewhere). The mod is left in `build/libs/holoprint-26.3.jar`.
+On Windows run `gradlew.bat build` (`./gradlew build` elsewhere). The mod is left in `build/libs/holoprint-26.3-beta.1.jar`.
 
 ## Status
 
-Under development, not published yet.
+**Beta.** The current version is `26.3-beta.1`: the version number carries the Minecraft version it is made for (26.3), and the `-beta` suffix will be dropped when it is published for real. Expect rough edges and please report them in the [issues](https://github.com/DannyGT97/Minecraft-Java-Mods/issues).

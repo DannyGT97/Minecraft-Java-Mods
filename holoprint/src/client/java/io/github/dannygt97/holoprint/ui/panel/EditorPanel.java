@@ -59,10 +59,25 @@ public abstract class EditorPanel {
 		return false;
 	}
 
-	/** Draws what is not a widget (labels, lists). Called before the widgets are drawn. */
+	/** A click inside the window that landed on no widget (it may be on something the panel draws itself); true when the panel took it. */
+	public boolean mouseClicked(Host host, double x, double y, int button) {
+		return false;
+	}
+
+	/** The pointer moved with the left button held, after a click this window took; true when the window used it. */
+	public boolean mouseDragged(Host host, double x, double y) {
+		return false;
+	}
+
+	/** The mouse button was released; true when the window had been dragging something. */
+	public boolean mouseReleased(Host host) {
+		return false;
+	}
+
 	/** Called every tick while the window is open. */
 	public void tick(Host host) {}
 
+	/** Draws what is not a widget (labels, lists). Called before the widgets are drawn. */
 	public void render(GuiGraphicsExtractor graphics, int x, int y, int mouseX, int mouseY) {}
 
 	/** Width a window may use: the whole screen minus a margin (the toolbar is hidden while a window is open). */

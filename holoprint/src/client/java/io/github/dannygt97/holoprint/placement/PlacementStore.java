@@ -19,6 +19,7 @@ import com.google.gson.JsonParser;
 import io.github.dannygt97.holoprint.hologram.Hologram;
 import io.github.dannygt97.holoprint.hologram.HologramRenderer;
 import io.github.dannygt97.holoprint.hologram.LayerView;
+import io.github.dannygt97.holoprint.schematic.BlockStateTags;
 import io.github.dannygt97.holoprint.schematic.LitematicFormat;
 import io.github.dannygt97.holoprint.schematic.Schematic;
 import io.github.dannygt97.holoprint.schematic.SchematicFormats;
@@ -27,7 +28,9 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.LevelResource;
 
 /**
@@ -154,6 +157,17 @@ public final class PlacementStore {
 				entry.add("builtAt", at);
 			}
 			entry.addProperty("showEntities", hologram.showEntities());
+			if (!hologram.replacements().isEmpty()) {
+				JsonArray replaced = new JsonArray();
+				for (Hologram.Replacement replacement : hologram.replacements()) {
+					JsonObject r = new JsonObject();
+					r.addProperty("from", stateText(replacement.from()));
+					r.addProperty("to", stateText(replacement.to()));
+					r.addProperty("anyState", replacement.anyState());
+					replaced.add(r);
+				}
+				entry.add("replacements", replaced);
+			}
 			array.add(entry);
 		}
 		for (JsonObject lost : LOST) {
@@ -257,7 +271,7 @@ public final class PlacementStore {
 					if (schematic.name() == null || schematic.name().isBlank() || schematic.name().equals("Unnamed")) {
 						schematic.name(file.getFileName().toString().replaceFirst("\\.[^.]+$", ""));
 					}
-					hologram = Hologram.placed(schematic, new BlockPos(integer(entry, "x", 0), integer(entry, "y", 0), integer(entry, "z", 0)), integer(entry, "turns", 0), bool(entry, "mirrored", false));
+					hologram = Hologram.placed(schematic, new BlockPos(integer(entry, "x", 0), integer(entry, "y", 0), integer(entry, "z", 0)), integer(entry, "turns", 0), bool(entry, "mirrored", false), replacementsOf(entry));
 				} catch (IOException | RuntimeException ignored) {
 					// Unreadable now: kept as lost below.
 				}
@@ -309,6 +323,42 @@ public final class PlacementStore {
 			Editor.message(mc, Component.translatable("holoprint.message.restored", count));
 		}
 		write(true);
+	}
+
+	// --- replacements ---
+
+	/** A state written the way commands do, {@code minecraft:oak_stairs[facing=north,half=bottom]}. */
+	private static String stateText(BlockState state) {
+		CompoundTag tag = BlockStateTags.write(state);
+		StringBuilder text = new StringBuilder(BlockStateTags.nameOf(tag));
+		CompoundTag properties = tag.getCompound("Properties").orElse(null);
+		if (properties != null && !properties.isEmpty()) {
+			text.append('[');
+			boolean first = true;
+			for (String key : properties.keySet()) {
+				text.append(first ? "" : ",").append(key).append('=').append(properties.getStringOr(key, ""));
+				first = false;
+			}
+			text.append(']');
+		}
+		return text.toString();
+	}
+
+	/** The replacements a saved placement had; one whose block this game does not know is left out. */
+	private static List<Hologram.Replacement> replacementsOf(JsonObject entry) {
+		List<Hologram.Replacement> list = new ArrayList<>();
+		if (entry.get("replacements") instanceof JsonArray array) {
+			for (JsonElement element : array) {
+				try {
+					JsonObject r = element.getAsJsonObject();
+					list.add(new Hologram.Replacement(BlockStateTags.read(BlockStateTags.parse(string(r, "from", ""))),
+						BlockStateTags.read(BlockStateTags.parse(string(r, "to", ""))), bool(r, "anyState", false)));
+				} catch (RuntimeException ignored) {
+					// A block this game no longer has: that replacement is dropped.
+				}
+			}
+		}
+		return list;
 	}
 
 	// --- json helpers ---

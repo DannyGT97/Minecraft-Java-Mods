@@ -64,7 +64,7 @@ public final class GhostEntities {
 		for (Definition definition : definitions) {
 
 			try {
-				Entity entity = EntityType.loadEntityRecursive(definition.data().copy(), mc.level,
+				Entity entity = EntityType.loadEntityRecursive(placed(definition), mc.level,
 					new EntitySpawnRequest(EntitySpawnReason.LOAD, true), EntityProcessor.NOP);
 				if (entity == null) {
 					continue;
@@ -90,6 +90,29 @@ public final class GhostEntities {
 			}
 		}
 		return out;
+	}
+
+	/**
+	 * The saved data of {@code definition} with its position (and the block a hanging entity hangs on) where the hologram puts it. The data keeps
+	 * the coordinates of the world it was copied from, and the game refuses a frame or painting whose block is far from its position.
+	 */
+	private static net.minecraft.nbt.CompoundTag placed(Definition definition) {
+		net.minecraft.nbt.CompoundTag data = definition.data().copy();
+		net.minecraft.nbt.ListTag pos = new net.minecraft.nbt.ListTag();
+		pos.add(net.minecraft.nbt.DoubleTag.valueOf(definition.x()));
+		pos.add(net.minecraft.nbt.DoubleTag.valueOf(definition.y()));
+		pos.add(net.minecraft.nbt.DoubleTag.valueOf(definition.z()));
+		data.put("Pos", pos);
+		int bx = (int) Math.floor(definition.x()), by = (int) Math.floor(definition.y()), bz = (int) Math.floor(definition.z());
+		if (data.contains("block_pos")) {
+			data.putIntArray("block_pos", new int[] {bx, by, bz});
+		}
+		if (data.contains("TileX")) {
+			data.putInt("TileX", bx);
+			data.putInt("TileY", by);
+			data.putInt("TileZ", bz);
+		}
+		return data;
 	}
 
 	/** Submits the frozen entities of one hologram. Returns how many were drawn. */

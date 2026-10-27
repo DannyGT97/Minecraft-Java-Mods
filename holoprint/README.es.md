@@ -16,9 +16,10 @@ Holoprint es solo de cliente. No hace falta instalarlo en el servidor.
 - **Mover, girar y espejar.** El holograma sigue a tu puntero, un clic lo fija y `R` / `Z` lo giran y lo espejan.
 - **Comprueba lo que has construido.** Los bloques que faltan se ven como fantasmas; los que están mal se marcan con un contorno rojo.
 - **Colocación asistida.** Apunta al holograma y coloca: el bloque entra con el estado y la orientación correctos.
-- **Capas.** Mira una sola capa cada vez y sube y baja por la construcción.
+- **Capas.** Mira una sola capa cada vez y sube y baja por la construcción. Cada colocación guarda su propia capa.
 - **Lista de materiales** de cada colocación, ordenable (más o menos que faltan o necesarios, por nombre) y fijable en pantalla (arriba a la derecha, también fuera del editor; asigna una tecla en los ajustes).
 - **Varias colocaciones a la vez.** Cada una se puede ocultar, bloquear o quitar por separado. Una colocación se marca como completa cuando todo está construido (o a mano, con su casilla en la lista): deja de dibujarse y se queda en la lista como referencia; desmárcala para volver a editarla.
+- **Reemplazar bloques.** Cambia un material del holograma por otro bloque (o por aire, agua o lava) para ver la construcción con otra paleta antes de empezar. Solo cambia el holograma, nunca el mundo ni el archivo.
 - **Selección, copiar, pegar, borrar y guardar.** Selecciona una zona del mundo, cópiala, pégala como un holograma nuevo o guárdala como esquema.
 - **Construir (necesita trucos).** Construye una colocación entera de una vez, o mueve una zona real con `/clone`.
 
@@ -68,6 +69,23 @@ Según construyes, lo que ya coincide con el holograma desaparece y lo que queda
 
 El juego solo conoce el mundo cerca del jugador, y la cámara libre puede mirar mucho más lejos. Lo que está fuera de ese alcance no se puede comprobar: la fila de la colocación dice cuántos bloques quedan sin comprobar y, si sabes que está hecho, la casilla «Marcar como completa» la da por terminada.
 
+## Materiales fijados
+
+Fija la lista de materiales en pantalla (arriba a la derecha) y sigue contando mientras juegas, también fuera del editor: lo que aún falta y cuánto llevas ya encima.
+
+![La lista de materiales fijada en pantalla](docs/images/10-pinned-materials.jpg)
+
+## Reemplazar bloques
+
+¿La misma construcción con otra madera? Abre la lista de materiales de una colocación, pulsa **Reemplazar bloques…**, elige un material y pulsa **Elegir bloque nuevo** (escribe para buscar; el agua y la lava también están), luego **Reemplazar todo**. **Quitar todo** lo cambia por aire. La fila muestra `Antiguo xN → Nuevo xN`, **Conservar orientación** deja escaleras, troncos y similares mirando igual, y **Restaurar original** lo deshace.
+
+| | |
+|---|---|
+| ![Ventana de reemplazar bloques](docs/images/11-replace-window.jpg) | ![Elegir el bloque nuevo](docs/images/12-replace-picker.jpg) |
+| ![Un reemplazo listo para aplicar](docs/images/13-replace-ready.jpg) | ![El resultado: el mundo aún tiene los bloques antiguos, así que salen como incorrectos](docs/images/14-replace-result.jpg) |
+
+Solo cambia el holograma: nunca toca el mundo ni el archivo del esquema. Los bloques que ya habías construido con el material antiguo salen ahora como incorrectos (rojo), para que los corrijas a mano.
+
 ## Controles
 
 Todos son atajos normales, así que puedes cambiarlos en la pantalla de controles del juego.
@@ -106,13 +124,13 @@ Con [Controlify](https://modrinth.com/mod/controlify) instalado, Holoprint tambi
 ## Instalación
 
 1. Instala [Fabric Loader](https://fabricmc.net/) y la Fabric API para Minecraft 26.3.
-2. Pon `holoprint-26.3.jar` en tu carpeta `mods`.
+2. Pon `holoprint-26.3-beta.1.jar` en tu carpeta `mods`.
 3. Pon tus esquemas en la carpeta `schematics` del juego y pulsa `M` en un mundo.
 
 ## Compilar desde el código
 
-En Windows ejecuta `gradlew.bat build` (`./gradlew build` en otros sistemas). El mod queda en `build/libs/holoprint-26.3.jar`.
+En Windows ejecuta `gradlew.bat build` (`./gradlew build` en otros sistemas). El mod queda en `build/libs/holoprint-26.3-beta.1.jar`.
 
 ## Estado
 
-En desarrollo, sin publicar todavía.
+**Beta.** La versión actual es `26.3-beta.1`: el número lleva la versión de Minecraft para la que está hecha (26.3) y se quitará el `-beta` cuando se publique de verdad. Pueden quedar asperezas: avísalas en los [issues](https://github.com/DannyGT97/Minecraft-Java-Mods/issues).

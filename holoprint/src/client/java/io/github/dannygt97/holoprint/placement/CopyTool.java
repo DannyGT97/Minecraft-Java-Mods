@@ -106,7 +106,7 @@ final class CopyTool implements EditorTool {
 			Editor.message(mc, Component.translatable("holoprint.message.click_a_hologram"));
 			return;
 		}
-		Clipboard.set(under.schematic(), under.quarterTurns(), under.mirrored());
+		Clipboard.set(under);
 		carry(mc, under.copy());
 	}
 
