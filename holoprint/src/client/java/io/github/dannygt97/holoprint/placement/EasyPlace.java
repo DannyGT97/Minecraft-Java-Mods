@@ -612,6 +612,7 @@ public final class EasyPlace {
 		Vec3 eye = player.getEyePosition();
 		Vec3 look = player.getLookAngle();
 		double reach = player.blockInteractionRange();
+		Vec3 end = eye.add(look.scale(reach));
 		int x = net.minecraft.util.Mth.floor(eye.x), y = net.minecraft.util.Mth.floor(eye.y), z = net.minecraft.util.Mth.floor(eye.z);
 		int stepX = look.x > 0 ? 1 : -1, stepY = look.y > 0 ? 1 : -1, stepZ = look.z > 0 ? 1 : -1;
 		double tx = boundary(eye.x, x, look.x), ty = boundary(eye.y, y, look.y), tz = boundary(eye.z, z, look.z);
@@ -654,7 +655,7 @@ public final class EasyPlace {
 						return plan;
 					}
 				}
-			} else if (!world.isAir() && !world.canBeReplaced()) {
+			} else if (!world.isAir() && !world.canBeReplaced() && stopsLook(mc, world, cell, eye, end)) {
 				break;
 			}
 			double next = Math.min(tx, Math.min(ty, tz));
@@ -678,6 +679,14 @@ public final class EasyPlace {
 			lookedMode = BLOCKED;
 		}
 		return null;
+	}
+
+	/**
+	 * True when the look ray is stopped by the block in {@code cell}: its real outline is hit, not just its cell. A fence post or a wall leaves
+	 * gaps in its cell that the look goes through, so what lies behind them can still be aimed at.
+	 */
+	private static boolean stopsLook(Minecraft mc, BlockState state, BlockPos cell, Vec3 from, Vec3 to) {
+		return state.getShape(mc.level, cell).clip(from, to, cell) != null;
 	}
 
 	// --- doors, trapdoors and gates ---
