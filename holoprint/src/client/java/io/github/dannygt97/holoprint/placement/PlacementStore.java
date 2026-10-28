@@ -122,14 +122,14 @@ public final class PlacementStore {
 		JsonObject root = new JsonObject();
 		root.addProperty("version", 1);
 		JsonArray array = new JsonArray();
-		List<Hologram> all = HologramRenderer.all();
+		List<Hologram> all = HologramRenderer.everywhere();
 		int active = -1;
 		for (Hologram hologram : all) {
 			Path file = fileOf(hologram.schematic(), background);
 			if (file == null) {
 				continue;
 			}
-			if (hologram == HologramRenderer.active()) {
+			if (hologram == HologramRenderer.activeAnywhere()) {
 				active = array.size();
 			}
 			JsonObject entry = new JsonObject();
@@ -140,6 +140,7 @@ public final class PlacementStore {
 			entry.addProperty("turns", hologram.quarterTurns());
 			entry.addProperty("mirrored", hologram.mirrored());
 			entry.addProperty("label", hologram.label());
+			entry.addProperty("dimension", hologram.dimension());
 			entry.addProperty("visible", hologram.visible());
 			entry.addProperty("enabled", hologram.enabled());
 			entry.addProperty("locked", hologram.locked());
@@ -279,6 +280,8 @@ public final class PlacementStore {
 				Hologram result = hologram;
 				mc.execute(() -> {
 					if (result != null && folder != null) {
+						// saved before placements knew their dimension: it belongs to the one the world is loaded in
+						result.dimension(string(entry, "dimension", Hologram.currentDimension()));
 						result.label(string(entry, "label", ""));
 						result.visible(bool(entry, "visible", true));
 						result.enabled(bool(entry, "enabled", true));

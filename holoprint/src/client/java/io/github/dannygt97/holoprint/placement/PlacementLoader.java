@@ -31,7 +31,7 @@ public final class PlacementLoader {
 			Notices.error(Component.translatable("holoprint.message.format_unsupported", file.getFileName().toString()));
 			return;
 		}
-		if (HologramRenderer.all().size() >= PlacementLimits.max()) {
+		if (HologramRenderer.everywhere().size() >= PlacementLimits.max()) {
 			Notices.warning(Component.translatable("holoprint.message.too_many_placements", PlacementLimits.max()));
 			return;
 		}

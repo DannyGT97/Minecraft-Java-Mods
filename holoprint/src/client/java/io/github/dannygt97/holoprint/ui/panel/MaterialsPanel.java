@@ -39,7 +39,7 @@ public final class MaterialsPanel extends EditorPanel {
 
 	private final int WIDTH = Math.min(NOMINAL_WIDTH, availableWidth());
 	private final int rows = Math.max(4, Math.min(24, (available() - 26 - HEAD - 84) / ROW_HEIGHT));
-	private final Hologram hologram = HologramRenderer.active();
+	private final Hologram hologram = HologramRenderer.activeAnywhere();
 	private int scroll;
 
 	@Override

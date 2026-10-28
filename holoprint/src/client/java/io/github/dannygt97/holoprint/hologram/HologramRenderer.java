@@ -94,7 +94,7 @@ public final class HologramRenderer {
 			List<Candidate> candidates = new ArrayList<>();
 			for (Hologram hologram : ALL) {
 				// A finished placement is not drawn at all: it is a reference now (what the client cannot see of the world must not keep its outline).
-				if (!hologram.visible() || hologram.complete()) {
+				if (!hologram.visible() || hologram.complete() || !hologram.inCurrentDimension()) {
 					continue;
 				}
 				BlockPos origin = hologram.origin();
@@ -135,7 +135,7 @@ public final class HologramRenderer {
 					if (left <= 0) {
 						break;
 					}
-					if (hologram.visible() && !hologram.complete() && hologram.showEntities() && hologram.hasEntities()) {
+					if (hologram.visible() && !hologram.complete() && hologram.inCurrentDimension() && hologram.showEntities() && hologram.hasEntities()) {
 						left -= GhostEntities.render(mc, hologram, hologram.ghosts(mc), camera, range, config.hologramArgb(), context.levelState().cameraRenderState,
 							context.poseStack(), context.submitNodeCollector(), left);
 					}
@@ -149,7 +149,7 @@ public final class HologramRenderer {
 					if (left <= 0) {
 						break;
 					}
-					if (hologram.visible() && !hologram.complete() && hologram.hasBlockEntities()) {
+					if (hologram.visible() && !hologram.complete() && hologram.inCurrentDimension() && hologram.hasBlockEntities()) {
 						left -= GhostBlockEntities.render(mc, hologram, hologram.blockGhosts(mc), camera, range, context.levelState().cameraRenderState,
 							context.poseStack(), context.submitNodeCollector(), config.hideBuilt ? hologram.builtCells() : null, config.hologramArgb(), left);
 					}
@@ -677,10 +677,16 @@ public final class HologramRenderer {
 		return highlighted;
 	}
 
-	/** The one placement that is selected: a finished one picked in the list, or else the one the editor works on. */
-	public static Hologram selected() {
+	/** The one placement that is selected, in whatever dimension it is: a finished one picked in the list, or else the one the editor works on. */
+	public static Hologram selectedAnywhere() {
 		Hologram picked = highlighted;
 		return picked != null && ALL.contains(picked) && picked.complete() ? picked : active;
+	}
+
+	/** The selected placement when it is in the dimension the player is in (the only one where it can be seen and worked on), or null. */
+	public static Hologram selected() {
+		Hologram picked = selectedAnywhere();
+		return picked != null && picked.inCurrentDimension() ? picked : null;
 	}
 
 	/** Highlights {@code hologram}, or stops highlighting it when it already is. */
@@ -710,7 +716,14 @@ public final class HologramRenderer {
 		ALL.clear();
 	}
 
+	/** The placement the editor works on, when it is in the dimension the player is in; null when there is none or it is in another dimension. */
 	public static Hologram active() {
+		Hologram own = active;
+		return own != null && own.inCurrentDimension() ? own : null;
+	}
+
+	/** The placement the editor works on, in whatever dimension it is (its materials are listed from anywhere). */
+	public static Hologram activeAnywhere() {
 		return active;
 	}
 
@@ -732,7 +745,13 @@ public final class HologramRenderer {
 		}
 	}
 
+	/** The placements in the dimension the player is in: the only ones that are drawn, picked and checked. */
 	public static List<Hologram> all() {
+		return ALL.stream().filter(Hologram::inCurrentDimension).toList();
+	}
+
+	/** Every placement, whatever dimension it is in (the list of placements, the saving and the limit count them all). */
+	public static List<Hologram> everywhere() {
 		return ALL;
 	}
 
@@ -744,7 +763,7 @@ public final class HologramRenderer {
 		for (double t = 0.0; t <= maxDistance; t += 0.2) {
 			BlockPos at = BlockPos.containing(from.add(direction.scale(t)));
 			for (Hologram hologram : ALL) {
-				if (hologram != ignore && hologram.visible() && !hologram.complete() && hologram.containsWorld(at)) {
+				if (hologram != ignore && hologram.visible() && !hologram.complete() && hologram.inCurrentDimension() && hologram.containsWorld(at)) {
 					return hologram;
 				}
 			}
@@ -757,7 +776,7 @@ public final class HologramRenderer {
 		for (double t = 0.0; t <= maxDistance; t += 0.2) {
 			BlockPos at = BlockPos.containing(from.add(direction.scale(t)));
 			for (Hologram hologram : ALL) {
-				if (hologram.visible() && hologram.complete() && hologram.containsWorld(at)) {
+				if (hologram.visible() && hologram.complete() && hologram.inCurrentDimension() && hologram.containsWorld(at)) {
 					return hologram;
 				}
 			}

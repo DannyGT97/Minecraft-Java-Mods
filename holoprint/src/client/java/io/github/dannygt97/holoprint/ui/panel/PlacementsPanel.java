@@ -53,7 +53,7 @@ public final class PlacementsPanel extends EditorPanel {
 
 	@Override
 	public void init(Host host, int x, int y) {
-		List<Hologram> all = HologramRenderer.all();
+		List<Hologram> all = HologramRenderer.everywhere();
 		button(host, x + PAD, y, 110, Component.translatable("holoprint.placements.load"), () -> host.open(new LoadPanel()));
 		button(host, x + PAD + 114, y, 90, Component.translatable("holoprint.placements.hide_all"), () -> {
 			boolean anyVisible = all.stream().anyMatch(Hologram::visible);
@@ -131,7 +131,7 @@ public final class PlacementsPanel extends EditorPanel {
 
 	@Override
 	public boolean mouseScrolled(Host host, double wheel) {
-		int max = Math.max(0, HologramRenderer.all().size() - visibleRows);
+		int max = Math.max(0, HologramRenderer.everywhere().size() - visibleRows);
 		if (max == 0) {
 			return false;
 		}
@@ -142,9 +142,9 @@ public final class PlacementsPanel extends EditorPanel {
 
 	@Override
 	public void render(GuiGraphicsExtractor graphics, int x, int y, int mouseX, int mouseY) {
-		List<Hologram> all = HologramRenderer.all();
+		List<Hologram> all = HologramRenderer.everywhere();
 		// the check of the world has to be running for the boxes to know which placements are finished
-		all.forEach(Verifier::request);
+		all.stream().filter(Hologram::inCurrentDimension).forEach(Verifier::request);
 		Component count = Component.translatable("holoprint.placements.count", all.size(), PlacementLimits.max());
 		text(graphics, count, x + WIDTH - 30 - font().width(count), y - 17, all.size() >= PlacementLimits.max() ? 0xFFFF7070 : MUTED);
 		if (all.isEmpty()) {
@@ -222,6 +222,17 @@ public final class PlacementsPanel extends EditorPanel {
 		return result.missing == 0 && result.wrongCount == 0 && result.wrongStateCount == 0 && result.placed > 0 ? result.unloaded : 0;
 	}
 
+	/** A readable name for a dimension id: the three of the game by name, any other as its id; empty when it is not known. */
+	public static String dimensionName(String id) {
+		return switch (id) {
+			case "" -> "";
+			case "minecraft:overworld" -> Component.translatable("holoprint.dimension.overworld").getString();
+			case "minecraft:the_nether" -> Component.translatable("holoprint.dimension.nether").getString();
+			case "minecraft:the_end" -> Component.translatable("holoprint.dimension.end").getString();
+			default -> id;
+		};
+	}
+
 	/** The name and details of one placement; pressing it makes that placement the one Move works on. */
 	private static final class RowSelect extends Button {
 		private final Hologram hologram;
@@ -231,7 +242,9 @@ public final class PlacementsPanel extends EditorPanel {
 			super(x, y, width, height, Component.literal(name), b -> action.run(), DEFAULT_NARRATION);
 			this.hologram = hologram;
 			this.name = name;
-			if (hologram.complete()) {
+			if (!hologram.inCurrentDimension()) {
+				setTooltip(Tooltip.create(Component.translatable("holoprint.placements.tip_other_dimension", dimensionName(hologram.dimension()))));
+			} else if (hologram.complete()) {
 				setTooltip(Tooltip.create(Component.translatable("holoprint.placements.tip_complete_row")));
 			} else if (unchecked(hologram) > 0) {
 				setTooltip(Tooltip.create(Component.translatable("holoprint.placements.tip_unchecked", unchecked(hologram))));
@@ -242,7 +255,7 @@ public final class PlacementsPanel extends EditorPanel {
 
 		@Override
 		protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-			boolean current = hologram == HologramRenderer.selected();
+			boolean current = hologram == HologramRenderer.selectedAnywhere();
 			int x = getX();
 			int y = getY();
 			graphics.fill(x, y, x + getWidth(), y + getHeight(), isHoveredOrFocused() ? 0x66FFFFFF : 0x55000000);
@@ -250,18 +263,24 @@ public final class PlacementsPanel extends EditorPanel {
 				graphics.fill(x, y, x + 2, y + getHeight(), 0xFFFFD166);
 			}
 			var font = Minecraft.getInstance().font;
-			String shown = font.plainSubstrByWidth((current ? "★ " : "") + name + (hologram.visible() ? "" : " (hidden)"), getWidth() - 10);
+			// where it was placed, at the right of the name: in another dimension than the one the player is in, it is not drawn, and it stands out
+			String dimension = dimensionName(hologram.dimension());
+			int dimensionWidth = dimension.isEmpty() ? 0 : font.width(dimension) + 8;
+			String shown = font.plainSubstrByWidth((current ? "★ " : "") + name + (hologram.visible() ? "" : " (hidden)"), getWidth() - 10 - dimensionWidth);
 			boolean done = hologram.complete();
 			graphics.text(font, shown, x + 6, y + 5, !hologram.visible() || done ? 0xFF808080 : current ? 0xFFFFD166 : 0xFFE0E0E0, false);
 			BlockPos o = hologram.origin();
 			String detail = font.plainSubstrByWidth(o.getX() + ", " + o.getY() + ", " + o.getZ() + "   " + hologram.sizeX() + "x"
 				+ hologram.sizeY() + "x" + hologram.sizeZ() + "   " + hologram.quarterTurns() * 90 + "°", getWidth() - 10);
 			graphics.text(font, detail, x + 6, y + 18, 0xFF909090, false);
+			if (!dimension.isEmpty()) {
+				graphics.text(font, dimension, x + getWidth() - 6 - font.width(dimension), y + 5, hologram.inCurrentDimension() ? 0xFF7FB8E0 : 0xFFFF9F43, false);
+			}
+			int statusX = x + 6 + font.width(detail) + 10;
 			// what state it is in, after the details: finished (green) or opened again (yellow)
 			long unchecked = done ? 0 : unchecked(hologram);
 			long outside = outside(hologram);
 			if (done || hologram.reopened() || unchecked > 0 || outside > 0) {
-				int statusX = x + 6 + font.width(detail) + 10;
 				String status = (done ? Component.translatable("holoprint.placements.status_complete") : hologram.reopened() ? Component.translatable("holoprint.placements.status_reopened")
 					: unchecked > 0 ? Component.translatable("holoprint.placements.status_unchecked", unchecked) : Component.translatable("holoprint.placements.status_outside", outside)).getString();
 				// only when it fits whole: a cut word says nothing (the row is dimmed and its tooltip tells it anyway)

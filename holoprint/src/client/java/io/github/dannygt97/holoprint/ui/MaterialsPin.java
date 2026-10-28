@@ -231,7 +231,7 @@ public final class MaterialsPin {
 
 	private static Layout layout(Minecraft mc, GuiGraphicsExtractor graphics) {
 		HoloprintConfig config = HoloprintConfig.get();
-		Hologram hologram = HologramRenderer.active();
+		Hologram hologram = HologramRenderer.activeAnywhere();
 		if (!config.materialsPinned || !config.showHolograms || hologram == null || mc.player == null || mc.gui.screen() != null) {
 			return null;
 		}

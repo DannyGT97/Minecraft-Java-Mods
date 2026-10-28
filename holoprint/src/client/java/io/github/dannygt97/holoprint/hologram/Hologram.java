@@ -8,6 +8,7 @@ import java.util.Map;
 import io.github.dannygt97.holoprint.schematic.Region;
 import io.github.dannygt97.holoprint.schematic.Schematic;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -184,6 +185,9 @@ public final class Hologram {
 
 	/** The replacements in force, in the order they were made; each is applied to what the ones before left. */
 	private List<Replacement> replacements = List.of();
+
+	/** The dimension it was placed in (the id of its level); it is only drawn and worked on there. Empty when it is not known. */
+	private volatile String dimension = currentDimension();
 
 	public Hologram(Schematic schematic, BlockPos origin) {
 		this(schematic, origin, 0, false, List.of());
@@ -387,10 +391,27 @@ public final class Hologram {
 	public int quarterTurns() { return quarterTurns; }
 	public boolean mirrored() { return mirrored; }
 
+	/** The id of the dimension the player is in now ("minecraft:the_nether"), or empty when there is no world. */
+	public static String currentDimension() {
+		Minecraft mc = Minecraft.getInstance();
+		return mc.level == null ? "" : mc.level.dimension().identifier().toString();
+	}
+
+	/** The id of the dimension this placement is in; empty when it is not known. */
+	public String dimension() { return dimension; }
+	public void dimension(String dimension) { this.dimension = dimension == null ? "" : dimension; }
+
+	/** Whether this placement is in the dimension the player is in: the only one where it is drawn, picked and checked. */
+	public boolean inCurrentDimension() {
+		String own = dimension;
+		return own.isEmpty() || own.equals(currentDimension());
+	}
+
 	/** A second hologram of the same schematic, in the same place and orientation. */
 	public Hologram copy() {
 		Hologram copy = new Hologram(schematic, origin, quarterTurns, mirrored, replacements);
 		copy.showEntities = showEntities;
+		copy.dimension = dimension;
 		return copy;
 	}
 

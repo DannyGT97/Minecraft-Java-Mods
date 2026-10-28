@@ -373,6 +373,10 @@ public final class Verifier {
 		if (!hologram.visible() || !hologram.enabled() || hologram.sizeX() == 0) {
 			return false;
 		}
+		// one in another dimension has nothing to look at: it is only checked when the material list asks, and then every cell counts as pending
+		if (!hologram.inCurrentDimension()) {
+			return now < FORCED.getOrDefault(hologram, 0L);
+		}
 		HoloprintConfig config = HoloprintConfig.get();
 		return config.hideBuilt || config.showDifferences || now < FORCED.getOrDefault(hologram, 0L);
 	}
@@ -383,7 +387,7 @@ public final class Verifier {
 			return;
 		}
 		long now = mc.level.getGameTime();
-		List<Hologram> all = HologramRenderer.all();
+		List<Hologram> all = HologramRenderer.everywhere();
 		JOBS.keySet().removeIf(h -> !all.contains(h));
 		if (all.isEmpty()) {
 			return;
@@ -425,6 +429,7 @@ public final class Verifier {
 
 	/** Looks at up to {@code budget} more cells; returns how many were looked at. */
 	private static int step(Minecraft mc, Hologram hologram, Job job, int budget, long now) {
+		boolean foreign = !hologram.inCurrentDimension();
 		int sizeX = hologram.sizeX(), sizeZ = hologram.sizeZ();
 		int[] cells = job.cells;
 		int length = cells == null ? hologram.gridLength() : cells.length;
@@ -434,7 +439,7 @@ public final class Verifier {
 			int i = cells == null ? job.cursor++ : cells[job.cursor++];
 			done++;
 			BlockState wanted = hologram.gridState(i);
-			if (wanted == null && !job.withExtra) {
+			if (wanted == null && (!job.withExtra || foreign)) {
 				continue;
 			}
 			int x = i % sizeX;
@@ -442,7 +447,10 @@ public final class Verifier {
 			int y = i / (sizeX * sizeZ);
 			pos.set(job.origin.getX() + x, job.origin.getY() + y, job.origin.getZ() + z);
 			int chunkX = pos.getX() >> 4, chunkZ = pos.getZ() >> 4;
-			if (chunkX != job.lastChunkX || chunkZ != job.lastChunkZ) {
+			if (foreign) {
+				// the level in front of the player is another one: nothing of this placement can be read from it
+				job.lastLoaded = false;
+			} else if (chunkX != job.lastChunkX || chunkZ != job.lastChunkZ) {
 				job.lastChunkX = chunkX;
 				job.lastChunkZ = chunkZ;
 				// hasChunk says yes for any chunk inside the view window, even one the server never sent: the block would read as void air
@@ -460,7 +468,7 @@ public final class Verifier {
 				}
 				continue;
 			}
-			if (pos.getY() < mc.level.getMinY() || pos.getY() >= mc.level.getMaxY()) {
+			if (!foreign && (pos.getY() < mc.level.getMinY() || pos.getY() >= mc.level.getMaxY())) {
 				// out of the world: it can never be built, and it must not keep the placement from being finished (nor keep its outline)
 				job.outside++;
 				job.built.set(i);
@@ -473,7 +481,7 @@ public final class Verifier {
 				count[0] += items;
 			}
 			if (!job.lastLoaded) {
-				if (hologram.assumedBuilt()) {
+				if (hologram.assumedBuilt() && !foreign) {
 					// the Build wrote it; the client just does not have that part of the world (the free camera sees farther than the player's chunks)
 					job.built.set(i);
 					job.placed += items;
