@@ -127,6 +127,20 @@ public final class Editor {
 		}
 	}
 
+	/**
+	 * An area is about to be selected. A selected placement and a selected area cannot both exist, so the placement is let go
+	 * (Move, which works on it, is left first so it puts it down properly).
+	 */
+	public static void beginSelection(Minecraft mc) {
+		if (HologramRenderer.selectedAnywhere() == null) {
+			return;
+		}
+		if (active && mode == EditorMode.MOVE) {
+			setMode(mc, EditorMode.SELECT);
+		}
+		HologramRenderer.releaseSelected();
+	}
+
 	/** Changes the editing mode. Nothing is discarded; Move needs a hologram. */
 	public static void setMode(Minecraft mc, EditorMode wanted) {
 		atBuild = false;

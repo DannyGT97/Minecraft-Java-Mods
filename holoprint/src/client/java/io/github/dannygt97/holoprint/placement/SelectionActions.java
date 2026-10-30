@@ -24,6 +24,7 @@ import io.github.dannygt97.holoprint.schematic.Schematic;
 import io.github.dannygt97.holoprint.schematic.SchematicFolder;
 import io.github.dannygt97.holoprint.selection.Clipboard;
 import io.github.dannygt97.holoprint.selection.Selection;
+import io.github.dannygt97.holoprint.ui.Notices;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -138,7 +139,7 @@ public final class SelectionActions {
 			if (schematic == null) {
 				return;
 			}
-			// Leaving Select mode clears the selection, so what is needed of it is read first.
+			// Putting the carried copy down makes it the selected placement, which drops the selection, so what is needed of it is read now.
 			BlockPos min = Selection.min();
 			int sizeX = Selection.sizeX(), sizeY = Selection.sizeY(), sizeZ = Selection.sizeZ();
 			Hologram hologram = new Hologram(schematic, min);
@@ -298,10 +299,16 @@ public final class SelectionActions {
 	/** Saves the selected area as a .litematic file in the schematics folder. */
 	public static void save(Minecraft mc) {
 		if (!Selection.isComplete()) {
-			Editor.message(mc, Component.translatable("holoprint.message.no_selection"));
+			Notices.warning(Component.translatable("holoprint.message.no_selection"));
 			return;
 		}
-		Schematic schematic = capture(mc);
+		Schematic schematic;
+		try {
+			schematic = capture(mc);
+		} catch (RuntimeException e) {
+			Notices.error(Component.translatable("holoprint.message.save_failed", String.valueOf(e)));
+			return;
+		}
 		if (schematic == null) {
 			return;
 		}
@@ -312,9 +319,9 @@ public final class SelectionActions {
 		try {
 			Files.createDirectories(file.getParent());
 			LitematicFormat.write(schematic, file);
-			Editor.message(mc, Component.translatable("holoprint.message.saved", file.getFileName().toString()));
-		} catch (IOException e) {
-			Editor.message(mc, Component.translatable("holoprint.message.save_failed", String.valueOf(e.getMessage())));
+			Notices.info(Component.translatable("holoprint.message.saved", file.getFileName().toString()));
+		} catch (IOException | RuntimeException e) {
+			Notices.error(Component.translatable("holoprint.message.save_failed", String.valueOf(e.getMessage())));
 		}
 	}
 
@@ -379,7 +386,7 @@ public final class SelectionActions {
 	/** Reads the blocks of the selected area from the world into a schematic. */
 	private static Schematic capture(Minecraft mc) {
 		if (Selection.volume() > HoloprintConfig.get().copyLimit) {
-			Editor.message(mc, Component.translatable("holoprint.message.too_big", Selection.volume()));
+			Notices.warning(Component.translatable("holoprint.message.too_big", Selection.volume()));
 			return null;
 		}
 		BlockPos min = Selection.min();

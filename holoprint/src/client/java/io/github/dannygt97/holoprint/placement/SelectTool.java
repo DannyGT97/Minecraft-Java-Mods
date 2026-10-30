@@ -11,16 +11,15 @@ import net.minecraft.world.phys.Vec3;
 /**
  * Select-area mode: a click marks the first corner, the box grows with the pointer, a second click
  * fixes it, and one more click removes it again. The finished area can be copied, cut, deleted or
- * saved as a schematic. The selection belongs to this mode: it disappears when the mode is left.
+ * saved as a schematic. The selection outlives the mode: it stays made and visible when another mode is chosen. It is
+ * removed by clearing it or by selecting a placement (the two cannot exist together), and a new selection lets the placement go.
  */
 final class SelectTool implements EditorTool {
 	@Override
 	public void enter(Minecraft mc, boolean fresh) {}
 
 	@Override
-	public void leave(Minecraft mc) {
-		Selection.clear();
-	}
+	public void leave(Minecraft mc) {}
 
 	@Override
 	public void tick(Minecraft mc, Vec3 ray) {
@@ -41,6 +40,7 @@ final class SelectTool implements EditorTool {
 		}
 		BlockPos corner = Editor.targetBlock(mc, ray);
 		if (Selection.isEmpty()) {
+			Editor.beginSelection(mc);
 			Selection.begin(corner);
 		} else {
 			Selection.finish(corner);

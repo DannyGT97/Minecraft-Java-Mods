@@ -1,6 +1,7 @@
 package io.github.dannygt97.holoprint.ui.panel;
 
 import io.github.dannygt97.holoprint.freecam.Freecam;
+import io.github.dannygt97.holoprint.placement.Editor;
 import io.github.dannygt97.holoprint.placement.SelectionActions;
 import io.github.dannygt97.holoprint.selection.Selection;
 import net.minecraft.client.Minecraft;
@@ -61,6 +62,13 @@ public final class AreaEditorPanel extends EditorPanel {
 	}
 
 	/** Where the free camera is, rounded to the block; the player's own block when the camera is not flying. */
+	private static void setCorner(int which, BlockPos corner) {
+		if (Selection.isEmpty()) {
+			Editor.beginSelection(Minecraft.getInstance());
+		}
+		Selection.setCorner(which, corner);
+	}
+
 	private static BlockPos location() {
 		return Freecam.isActive() ? BlockPos.containing(Freecam.eyePosition()) : Minecraft.getInstance().player.blockPosition();
 	}
@@ -92,23 +100,23 @@ public final class AreaEditorPanel extends EditorPanel {
 					// Typing a whole number moves that coordinate at once; half-typed text (like "-") is left alone.
 					coordinate.setResponder(text -> {
 						try {
-							Selection.setCorner(w, with(base(w), a, Integer.parseInt(text.trim())));
+							setCorner(w, with(base(w), a, Integer.parseInt(text.trim())));
 						} catch (NumberFormatException ignored) {
 							// not a number yet
 						}
 					});
 					small(host, cx + 102, ry + 1, 16, "-", () -> {
-						Selection.setCorner(w, with(base(w), a, get(base(w), a) - amount()));
+						setCorner(w, with(base(w), a, get(base(w), a) - amount()));
 						host.rebuild();
 					});
 					small(host, cx + 120, ry + 1, 16, "+", () -> {
-						Selection.setCorner(w, with(base(w), a, get(base(w), a) + amount()));
+						setCorner(w, with(base(w), a, get(base(w), a) + amount()));
 						host.rebuild();
 					});
 				}
 			}
 			button(host, cx, y + v(48) + 3 * v(24) + 2, 138, Component.translatable("holoprint.area.move_to_player"), () -> {
-				Selection.setCorner(w, location());
+				setCorner(w, location());
 				host.rebuild();
 			});
 		}

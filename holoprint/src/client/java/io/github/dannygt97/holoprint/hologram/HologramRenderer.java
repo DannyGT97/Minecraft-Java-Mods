@@ -9,6 +9,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.mojang.blaze3d.vertex.QuadInstance;
 import io.github.dannygt97.holoprint.config.HoloprintConfig;
+import io.github.dannygt97.holoprint.selection.Selection;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
@@ -660,6 +661,9 @@ public final class HologramRenderer {
 		if (hologram != null && !ALL.contains(hologram)) {
 			ALL.add(0, hologram);
 		}
+		if (hologram != null) {
+			Selection.clear();
+		}
 	}
 
 	/** Adds a new placement and makes it the one the Move mode works on; the others stay. */
@@ -668,6 +672,7 @@ public final class HologramRenderer {
 			ALL.add(hologram);
 		}
 		active = hologram;
+		Selection.clear();
 	}
 
 	/** A finished placement the user picked in the list to see where it is: it gets the gold box and the big name, though it is not the one Move works on. */
@@ -692,14 +697,24 @@ public final class HologramRenderer {
 	/** Highlights {@code hologram}, or stops highlighting it when it already is. */
 	public static void toggleHighlight(Hologram hologram) {
 		highlighted = highlighted == hologram ? null : hologram;
+		if (highlighted != null) {
+			Selection.clear();
+		}
 	}
 
-	/** Makes an existing placement the one the Move mode works on. */
+	/** Makes an existing placement the one the Move mode works on. A selected placement and a selected area cannot both exist, so the area is dropped. */
 	public static void makeActive(Hologram hologram) {
 		if (ALL.contains(hologram) && !hologram.complete()) {
 			highlighted = null;
 			active = hologram;
+			Selection.clear();
 		}
+	}
+
+	/** The area being selected takes over: no placement stays selected (the one Move works on, or the one picked in the list). */
+	public static void releaseSelected() {
+		active = null;
+		highlighted = null;
 	}
 
 	/** The given placement stops being the one Move works on (it is finished); nothing else changes. */

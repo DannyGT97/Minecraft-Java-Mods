@@ -403,8 +403,17 @@ public final class Hologram {
 
 	/** Whether this placement is in the dimension the player is in: the only one where it is drawn, picked and checked. */
 	public boolean inCurrentDimension() {
+		String now = currentDimension();
 		String own = dimension;
-		return own.isEmpty() || own.equals(currentDimension());
+		if (own.isEmpty()) {
+			// one made before there was a level (or saved without a dimension) belongs to the first dimension it is seen in; it is never in all of them
+			if (now.isEmpty()) {
+				return false;
+			}
+			dimension = now;
+			return true;
+		}
+		return own.equals(now);
 	}
 
 	/** A second hologram of the same schematic, in the same place and orientation. */
