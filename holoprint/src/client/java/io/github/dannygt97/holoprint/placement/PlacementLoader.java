@@ -41,9 +41,8 @@ public final class PlacementLoader {
 				Schematic schematic = SchematicFormats.read(file);
 				schematic.source(file);
 				String fileName = file.getFileName().toString().replaceFirst("\\.[^.]+$", "");
-				if (schematic.name() == null || schematic.name().isBlank() || schematic.name().equals("Unnamed")) {
-					schematic.name(fileName);
-				}
+				// a placement is named after its file: the name inside is whatever the program that made it wrote, often the same for all of them
+				schematic.name(fileName);
 				// Turning the blocks into the hologram is the heavy part for a big schematic, so it is
 				// done here, off the game thread, and the game only receives the finished hologram.
 				Hologram hologram = new Hologram(schematic, BlockPos.ZERO);

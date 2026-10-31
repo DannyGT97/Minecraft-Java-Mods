@@ -270,9 +270,7 @@ public final class PlacementStore {
 				try {
 					Schematic schematic = SchematicFormats.read(file);
 					schematic.source(file);
-					if (schematic.name() == null || schematic.name().isBlank() || schematic.name().equals("Unnamed")) {
-						schematic.name(file.getFileName().toString().replaceFirst("\\.[^.]+$", ""));
-					}
+					schematic.name(file.getFileName().toString().replaceFirst("\\.[^.]+$", ""));
 					hologram = Hologram.placed(schematic, new BlockPos(integer(entry, "x", 0), integer(entry, "y", 0), integer(entry, "z", 0)), integer(entry, "turns", 0), bool(entry, "mirrored", false), replacementsOf(entry));
 				} catch (IOException | RuntimeException ignored) {
 					// Unreadable now: kept as lost below.
