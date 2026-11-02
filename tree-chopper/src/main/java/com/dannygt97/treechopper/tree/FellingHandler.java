@@ -3,9 +3,11 @@ package com.dannygt97.treechopper.tree;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
@@ -51,6 +53,8 @@ public class FellingHandler {
 	private static final int MAX_TREE_DECORATIONS = 1024;
 	private static final int MAX_NETHER_CANOPY = 1024;
 	private static final int MAX_ORPHAN_GROUP = 200;
+	// Deeper than any branch hangs, so a column of logs this tall is a trunk.
+	private static final int MAX_TRUNK_COLUMN = 64;
 	private static final float[] NETHER_FUNGUS_DROP_CHANCES = {0.05F, 0.0625F, 0.083333336F, 0.1F};
 	private static final RandomSource RANDOM = RandomSource.create();
 	// Saplings wait this long (half a second) before being planted so the swing that just felled the
@@ -114,13 +118,28 @@ public class FellingHandler {
 				return;
 			}
 		}
+		// The same goes for a thick trunk cleared from two opposite corners: its last base log is
+		// only diagonal to this one, and it is told apart from a separate tree standing diagonally
+		// beside this one by the trunk joining both of them right above.
+		for (int dx = -1; dx <= 1; dx += 2) {
+			for (int dz = -1; dz <= 1; dz += 2) {
+				if (isNaturalLog(serverLevel, pos.offset(dx, 0, dz), logBlock)
+					&& (isNaturalLog(serverLevel, pos.offset(dx, 1, 0), logBlock) || isNaturalLog(serverLevel, pos.offset(0, 1, dz), logBlock))) {
+					return;
+				}
+			}
+		}
 
 		// This is the AFTER event - `pos` is already air by the time we get here, so it can't be
 		// used as a BFS seed itself (it would just fail the "is this block a log" match). Seed
 		// with its neighbors instead; only the rest of the connected tree is ours to break here.
-		// Some trees place branches diagonally. Acacia uses all diagonal neighbors; mangrove can
-		// lean from one level to the next, so include vertical diagonals there while excluding
-		// same-level corner links that can join two nearby trunks.
+		// Many trees place logs only diagonally to each other: a big oak's or mega jungle's branches
+		// are drawn as slanted lines, a dark/pale oak hangs branch columns off the corners of its
+		// trunk, acacia bends sideways. Logs therefore connect through all 26 neighbors, and a log
+		// standing on the ground on its own (a tree growing right beside this one) is left out, so
+		// two touching trees aren't felled together. Mangrove keeps its own rule: it can lean from
+		// one level to the next, so only vertical diagonals count there, and its trunks stand in
+		// water and on roots instead of on the ground.
 		// The `p.getY() >= pos.getY()` guard is what makes this a directional felling instead of
 		// destroying the whole tree regardless of cut height: chopping partway up a thick
 		// multi-log trunk (dark oak/pale oak's 2x2 base) should only take down what's above the
@@ -231,18 +250,19 @@ public class FellingHandler {
 	private static void floodFillLogs(final ServerLevel level, final Set<BlockPos> logs, final BlockPos origin, final Block logBlock) {
 		Identifier id = BuiltInRegistries.BLOCK.getKey(logBlock);
 		String family = id.getNamespace().equals("minecraft") ? woodFamily(id.getPath()) : "";
-		boolean acacia = family.equals("acacia");
 		boolean mangrove = family.equals("mangrove");
+		Map<BlockPos, Boolean> standsAlone = new HashMap<>();
 		Deque<BlockPos> queue = new ArrayDeque<>();
-		Predicate<BlockPos> matches = p -> p.getY() >= origin.getY() && level.getBlockState(p).is(BlockTags.LOGS)
-			&& sameWoodFamily(logBlock, level.getBlockState(p).getBlock()) && !PlayerPlacedBlocks.isPlaced(level, p)
-			&& (!mangrove || !isAnotherMangroveTrunkColumn(level, p, origin, logBlock));
-		for (BlockPos seed : logNeighborsOf(origin, acacia, mangrove)) {
+		Predicate<BlockPos> matches = p -> p.getY() >= origin.getY() && isTrunkBlock(level, p, logBlock)
+			&& (mangrove
+				? !isAnotherMangroveTrunkColumn(level, p, origin, logBlock)
+				: !standsAlone.computeIfAbsent(p, q -> standsOnTheGround(level, q, origin, logBlock)));
+		for (BlockPos seed : logNeighborsOf(origin, mangrove)) {
 			if (logs.size() >= MAX_LOGS) break;
 			if (matches.test(seed) && logs.add(seed)) queue.add(seed);
 		}
 		while (!queue.isEmpty() && logs.size() < MAX_LOGS) {
-			for (BlockPos neighbor : logNeighborsOf(queue.remove(), acacia, mangrove)) {
+			for (BlockPos neighbor : logNeighborsOf(queue.remove(), mangrove)) {
 				if (logs.size() >= MAX_LOGS) break;
 				if (matches.test(neighbor) && logs.add(neighbor)) queue.add(neighbor);
 			}
@@ -258,16 +278,14 @@ public class FellingHandler {
 	) {
 		Identifier id = BuiltInRegistries.BLOCK.getKey(logBlock);
 		String family = id.getNamespace().equals("minecraft") ? woodFamily(id.getPath()) : "";
-		boolean acacia = family.equals("acacia");
 		boolean mangrove = family.equals("mangrove");
-		Predicate<BlockPos> candidate = p -> !felled.contains(p) && !p.equals(origin) && level.getBlockState(p).is(BlockTags.LOGS)
-			&& sameWoodFamily(logBlock, level.getBlockState(p).getBlock()) && !PlayerPlacedBlocks.isPlaced(level, p);
+		Predicate<BlockPos> candidate = p -> !felled.contains(p) && !p.equals(origin) && isTrunkBlock(level, p, logBlock);
 
 		Set<BlockPos> orphans = new HashSet<>();
 		Set<BlockPos> visited = new HashSet<>();
-		List<BlockPos> starts = new ArrayList<>(logNeighborsOf(origin, acacia, mangrove));
+		List<BlockPos> starts = new ArrayList<>(logNeighborsOf(origin, mangrove));
 		for (BlockPos log : felled) {
-			starts.addAll(logNeighborsOf(log, acacia, mangrove));
+			starts.addAll(logNeighborsOf(log, mangrove));
 		}
 		for (BlockPos removed : canopy) {
 			starts.addAll(neighborsOf(removed, true));
@@ -283,7 +301,7 @@ public class FellingHandler {
 			visited.add(start);
 			while (!queue.isEmpty() && group.size() <= MAX_ORPHAN_GROUP) {
 				BlockPos current = queue.poll();
-				for (BlockPos next : logNeighborsOf(current, acacia, mangrove)) {
+				for (BlockPos next : logNeighborsOf(current, mangrove)) {
 					if (candidate.test(next) && group.add(next)) {
 						visited.add(next);
 						queue.add(next);
@@ -309,20 +327,51 @@ public class FellingHandler {
 		return orphans;
 	}
 
-	private static List<BlockPos> logNeighborsOf(final BlockPos pos, final boolean acacia, final boolean mangrove) {
-		if (acacia) return neighborsOf(pos, true);
-		List<BlockPos> result = new ArrayList<>(mangrove ? 18 : 6);
+	private static List<BlockPos> logNeighborsOf(final BlockPos pos, final boolean mangrove) {
+		if (!mangrove) return neighborsOf(pos, true);
+		List<BlockPos> result = new ArrayList<>(18);
 		for (Direction dir : Direction.values()) result.add(pos.relative(dir));
-		if (mangrove) {
-			for (int dy : new int[] {-1, 1}) {
-				for (int dx = -1; dx <= 1; dx++) {
-					for (int dz = -1; dz <= 1; dz++) {
-						if (dx != 0 || dz != 0) result.add(pos.offset(dx, dy, dz));
-					}
+		for (int dy : new int[] {-1, 1}) {
+			for (int dx = -1; dx <= 1; dx++) {
+				for (int dz = -1; dz <= 1; dz++) {
+					if (dx != 0 || dz != 0) result.add(pos.offset(dx, dy, dz));
 				}
 			}
 		}
 		return result;
+	}
+
+	private static boolean isNaturalLog(final ServerLevel level, final BlockPos pos, final Block logBlock) {
+		BlockState state = level.getBlockState(pos);
+		return state.is(BlockTags.LOGS) && sameWoodFamily(logBlock, state.getBlock()) && !PlayerPlacedBlocks.isPlaced(level, pos);
+	}
+
+	// A natural log of the tree, or the creaking heart a pale oak grows inside its trunk: it is
+	// felled with the trunk instead of being left floating where the trunk stood.
+	private static boolean isTrunkBlock(final ServerLevel level, final BlockPos pos, final Block logBlock) {
+		if (isNaturalLog(level, pos, logBlock)) return true;
+		return level.getBlockState(pos).is(Blocks.CREAKING_HEART) && isPaleOak(logBlock) && !PlayerPlacedBlocks.isPlaced(level, pos);
+	}
+
+	private static boolean isPaleOak(final Block logBlock) {
+		Identifier id = BuiltInRegistries.BLOCK.getKey(logBlock);
+		return id.getNamespace().equals("minecraft") && woodFamily(id.getPath()).equals("pale_oak");
+	}
+
+	// Whether the column of trunk blocks `candidate` belongs to goes down to the ground on its own,
+	// which makes it the trunk of another tree (or a fallen log) next to this one rather than one of
+	// this tree's branches - those hang in the air, or rest on the trunk just cut or on the bee nest
+	// the tree grew under its branch. The column of the cut itself is always part of the tree.
+	private static boolean standsOnTheGround(final ServerLevel level, final BlockPos candidate, final BlockPos origin, final Block logBlock) {
+		if (candidate.getX() == origin.getX() && candidate.getZ() == origin.getZ()) return false;
+		BlockPos below = candidate.below();
+		for (int depth = 0; isTrunkBlock(level, below, logBlock); depth++) {
+			if (depth >= MAX_TRUNK_COLUMN) return true;
+			below = below.below();
+		}
+		BlockState ground = level.getBlockState(below);
+		return !ground.isAir() && ground.getFluidState().isEmpty() && !ground.is(BlockTags.LEAVES) && !ground.is(BlockTags.BEEHIVES)
+			&& !ground.canBeReplaced();
 	}
 
 	// A diagonal mangrove branch can touch the trunk of a second tree. That tree's own column
@@ -430,11 +479,6 @@ public class FellingHandler {
 	private static boolean isTreeDecoration(final BlockState state, final boolean mangrove) {
 		return state.is(Blocks.VINE) || state.is(Blocks.PALE_HANGING_MOSS)
 			|| (mangrove && (state.is(Blocks.MANGROVE_ROOTS) || state.is(Blocks.MANGROVE_PROPAGULE)));
-	}
-
-	private static boolean usesDiagonalLogConnections(final Block logBlock) {
-		Identifier id = BuiltInRegistries.BLOCK.getKey(logBlock);
-		return id.getNamespace().equals("minecraft") && woodFamily(id.getPath()).equals("acacia");
 	}
 
 	private record LeafNode(BlockPos pos, int treeDistance) {}

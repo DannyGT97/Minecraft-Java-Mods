@@ -29,10 +29,14 @@ public final class PlayerPlacedBlocks {
 
 	private PlayerPlacedBlocks() {}
 
+	// Loading the class registers the attachment; it has to happen at startup, because chunks that
+	// load before the first block is placed would otherwise drop their saved data as unknown.
+	public static void init() {}
+
 	// Every block the felling logic would otherwise consume: all wood types, plain mangrove roots,
-	// tree decorations, and the nether tree canopy blocks.
+	// tree decorations, the creaking heart of a pale oak, and the nether tree canopy blocks.
 	public static boolean shouldTrack(final BlockState state) {
-		return state.is(BlockTags.LOGS) || state.is(Blocks.MANGROVE_ROOTS) || state.is(Blocks.MANGROVE_PROPAGULE)
+		return state.is(BlockTags.LOGS) || state.is(Blocks.CREAKING_HEART) || state.is(Blocks.MANGROVE_ROOTS) || state.is(Blocks.MANGROVE_PROPAGULE)
 			|| state.is(Blocks.VINE) || state.is(Blocks.PALE_HANGING_MOSS) || isNetherCanopy(state);
 	}
 
